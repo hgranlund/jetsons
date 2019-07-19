@@ -5,6 +5,14 @@ const senario = (name, { input, expectedResult }) => {
 };
 
 const legalSenarios = [
+  senario('a legal array with Number', {
+    input: [1, 2, 3],
+    expectedResult: [1, 2, 3],
+  }),
+  senario('a legal array with Number, string and boolean', {
+    input: [1, 'aString', false],
+    expectedResult: [1, 'aString', false],
+  }),
   senario('a legal json with Number', {
     input: {
       aKeyWithNumber: 1,
@@ -35,6 +43,22 @@ const legalSenarios = [
     },
     expectedResult: {
       aKeyWithString: '1',
+    },
+  }),
+  senario('a legal json with boolean as String', {
+    input: {
+      aKeyWithString: 'true',
+    },
+    expectedResult: {
+      aKeyWithString: 'true',
+    },
+  }),
+  senario('a legal json with null value', {
+    input: {
+      aKeyWithString: null,
+    },
+    expectedResult: {
+      aKeyWithString: null,
     },
   }),
   senario('a legal json with String', {
