@@ -50,7 +50,6 @@ function readAsPromised(stream, size) {
     return new Promise((resolve, reject) => {
       const endListener = () => resolve(null);
       stream.once('end', endListener);
-      stream.once('finish', endListener);
       stream.once('error', reject);
       stream.once('readable', () => {
         stream.removeListener('end', endListener);

@@ -52,7 +52,7 @@ class Streamify extends Readable {
   async processTopStackElement() {
     if (this.isEmpty) return false;
     const element = this.peekStack;
-    const { next, elements = [] } = await element.next();
+    const { next, elements = [] } = await element.next(this.push);
     if (element.isComplete) {
       this.stack.shift();
     }
@@ -62,7 +62,7 @@ class Streamify extends Readable {
     if (next) {
       return this.push(next);
     }
-    return false;
+    return true;
   }
 }
 
@@ -75,8 +75,15 @@ class StackElement {
     if (type === 'number') return new NumberStackElement(value);
     if (type === 'string') return new StringStackElement(value);
     if (type === 'boolean') return new PrimitiveStackElement(value);
-    // if (value instanceof Stream)
-    //   return `Readable${getReadableStreamType(value)}`;
+    if (value instanceof Stream) {
+      if (value._readableState.objectMode) {
+        return new ObjectStreamStackElement(value);
+      } else if (value.streamRaw) {
+        return new StreamStackElement(value);
+      } else {
+        return new StringStreamStackElement(value);
+      }
+    }
     if (Array.isArray(value)) return new ArrayStackElement(value);
     if (typeof value === 'object' || value instanceof Object) {
       return new ObjectStackElement(value);
@@ -130,17 +137,66 @@ class NumberStackElement extends StackElement {
   }
 }
 
+class StringStreamStackElement extends StackElement {
+  async next() {
+    this._isComplete = true;
+    return this.state('"', [
+      new StreamStackElement(this.value),
+      new StackElement('"'),
+    ]);
+  }
+}
+
 class StreamStackElement extends StackElement {
   constructor(value) {
     super(value);
-    value.on('end', () => {
-      this._isComplete = true;
+    this.error = null;
+    value
+      .on('end', () => {
+        this._isComplete = true;
+      })
+      .on('error', error => {
+        this.error = error;
+      });
+  }
+  whenReady() {
+    return new Promise((resolve, reject) => {
+      const endListener = () => resolve();
+      this.value.once('end', endListener);
+      this.value.once('error', reject);
+      this.value.once('readable', () => {
+        this.value.removeListener('end', endListener);
+        this.value.removeListener('error', reject);
+        resolve();
+      });
     });
   }
 
-  async next() {}
+  async next() {
+    if (this.error) {
+      this._isComplete = true;
+      throw this.error;
+    }
+    if (this._isComplete) {
+      return this.state();
+    }
+    await this.whenReady();
+    const chunck = this.value.read();
+    if (chunck || this._isComplete) {
+      return this.state(chunck);
+    } else {
+      return this.next();
+    }
+  }
 }
-
+class ObjectStreamStackElement extends StreamStackElement {
+  state(next) {
+    if (next === null) {
+      return super.state();
+    }
+    return super.state(null, [StackElement.factory(next)]);
+  }
+}
 class PromiseStackElement extends StackElement {
   async next() {
     this._isComplete = true;

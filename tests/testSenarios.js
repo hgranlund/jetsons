@@ -1,4 +1,4 @@
-const intoStream = require('into-stream');
+const { toStream } = require('./testUtils');
 
 const senario = (name, { input, expectedResult }) => {
   return [name, { input, expectedResult }];
@@ -75,22 +75,30 @@ const legalSenarios = [
       },
     },
   }),
-  // senario('a legal json with string stream', {
-  //   input: {
-  //     aKeyWithStream: intoStream('aValue'),
-  //   },
-  //   expectedResult: {
-  //     aKeyWithStream: 'aValue',
-  //   },
-  // }),
-  // senario('a legal json with object stream', {
-  //   input: {
-  //     aKeyWithStream: intoStream({ streamed: 'value' }),
-  //   },
-  //   expectedResult: {
-  //     aKeyWithStream: { streamed: 'value' },
-  //   },
-  // }),
+  senario('a legal json with string stream', {
+    input: {
+      aKeyWithStream: toStream('aValue'),
+    },
+    expectedResult: {
+      aKeyWithStream: 'aValue',
+    },
+  }),
+  senario('a legal json with navite stream', {
+    input: {
+      aKeyWithStream: toStream('"aValue"', true),
+    },
+    expectedResult: {
+      aKeyWithStream: 'aValue',
+    },
+  }),
+  senario('a legal json with object stream', {
+    input: {
+      aKeyWithStream: toStream({ streamed: 'value' }),
+    },
+    expectedResult: {
+      aKeyWithStream: { streamed: 'value' },
+    },
+  }),
   senario('a legal json with promise', {
     input: {
       aKeyWithPromise: Promise.resolve('aValue'),
