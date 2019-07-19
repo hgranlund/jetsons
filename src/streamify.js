@@ -25,22 +25,31 @@ class Streamify extends Readable {
     if (this.hasEnded) {
       return;
     }
-
-    if (this.processStackElement()) {
-      setImmediate(() => this.processStackElement());
-    } else {
-      this.reading = false;
-    }
+    this.processStack()
+      .then(() => (this.reading = false))
+      .catch(error => {
+        this.error = error;
+        this.hasEnded = true;
+        setImmediate(this.emit('error', error));
+      });
   }
 
   addToStack(value) {
     this.stack.push(StackElement.factory(value));
   }
 
-  processStackElement() {
+  async processStack() {
+    const toContinue = await this.processTopStackElement();
+    if (toContinue) {
+      return this.processStack();
+    }
+    return toContinue;
+  }
+
+  async processTopStackElement() {
     if (this.isEmpty) return false;
     const element = this.peekStack;
-    const { next, elements = [] } = element.next();
+    const { next, elements = [] } = await element.next();
     if (element.isComplete) {
       this.stack.shift();
     }
@@ -58,7 +67,8 @@ class StackElement {
   static factory(value) {
     const type = typeof value;
     if (!value) return new PrimitiveStackElement(value);
-    // if (typeof value.then === 'function') return 'Promise';
+    if (typeof value.then === 'function') return PromiseStackElement(value);
+    if (value instanceof Promise) return PromiseStackElement(value);
     if (type === 'number') return new NumberStackElement(value);
     if (type === 'string') return new StringStackElement(value);
     if (type === 'boolean') return new PrimitiveStackElement(value);
@@ -85,7 +95,7 @@ class StackElement {
     return value;
   }
 
-  state(next, elements = []) {
+  async state(next, elements = []) {
     return { next, elements };
   }
 
@@ -114,6 +124,29 @@ class NumberStackElement extends StackElement {
     } else {
       return 'null';
     }
+  }
+}
+
+class StreamStackElement extends StackElement {
+  constructor(value) {
+    super(value);
+    value.on('end', () => {
+      this._isComplete = true;
+    });
+  }
+
+  next() {}
+}
+
+class PromiseStackElement extends StackElement {
+  constructor(value) {
+    super(value);
+  }
+
+  next(done) {
+    this.value.then(result => {
+      return done(null, StackElement.factory(result));
+    });
   }
 }
 
