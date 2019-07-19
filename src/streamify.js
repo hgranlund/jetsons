@@ -16,7 +16,9 @@ class Streamify extends Readable {
   }
 
   _read() {
-    this.reading = true;
+    if (this.reading) {
+      return null;
+    }
     if (this.isEmpty) {
       this.push(null);
       this.hasEnded = true;
@@ -25,6 +27,7 @@ class Streamify extends Readable {
     if (this.hasEnded) {
       return;
     }
+    this.reading = true;
     this.processStack()
       .then(() => (this.reading = false))
       .catch(error => {
@@ -67,8 +70,8 @@ class StackElement {
   static factory(value) {
     const type = typeof value;
     if (!value) return new PrimitiveStackElement(value);
-    if (typeof value.then === 'function') return PromiseStackElement(value);
-    if (value instanceof Promise) return PromiseStackElement(value);
+    if (typeof value.then === 'function') return new PromiseStackElement(value);
+    if (value instanceof Promise) return new PromiseStackElement(value);
     if (type === 'number') return new NumberStackElement(value);
     if (type === 'string') return new StringStackElement(value);
     if (type === 'boolean') return new PrimitiveStackElement(value);
@@ -95,11 +98,11 @@ class StackElement {
     return value;
   }
 
-  async state(next, elements = []) {
+  state(next, elements = []) {
     return { next, elements };
   }
 
-  next() {
+  async next() {
     this._isComplete = true;
     return this.state(this.value);
   }
@@ -135,18 +138,14 @@ class StreamStackElement extends StackElement {
     });
   }
 
-  next() {}
+  async next() {}
 }
 
 class PromiseStackElement extends StackElement {
-  constructor(value) {
-    super(value);
-  }
-
-  next(done) {
-    this.value.then(result => {
-      return done(null, StackElement.factory(result));
-    });
+  async next() {
+    this._isComplete = true;
+    const result = await this.value;
+    return this.state(null, [StackElement.factory(result)]);
   }
 }
 
@@ -157,7 +156,7 @@ class ArrayStackElement extends StackElement {
     this.type = 'array';
   }
 
-  next() {
+  async next() {
     if (this.first) {
       this.first = false;
       return this.state('[');
@@ -183,7 +182,7 @@ class ObjectStackElement extends StackElement {
     this.keys = Object.keys(value);
   }
 
-  next() {
+  async next() {
     if (this.first) {
       this.first = false;
       return this.state('{');

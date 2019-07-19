@@ -91,14 +91,14 @@ const legalSenarios = [
   //     aKeyWithStream: { streamed: 'value' },
   //   },
   // }),
-  // senario('a legal json with promise', {
-  //   input: {
-  //     aKeyWithPromise: Promise.resolve('aValue'),
-  //   },
-  //   expectedResult: {
-  //     aKeyWithPromise: 'aValue',
-  //   },
-  // }),
+  senario('a legal json with promise', {
+    input: {
+      aKeyWithPromise: Promise.resolve('aValue'),
+    },
+    expectedResult: {
+      aKeyWithPromise: 'aValue',
+    },
+  }),
 ];
 
 module.exports = { legalSenarios };
