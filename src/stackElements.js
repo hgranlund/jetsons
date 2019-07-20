@@ -1,4 +1,5 @@
 const { Stream } = require('stream');
+const { quote } = require('./utils');
 
 class StackElement {
   static factory(value) {
@@ -51,7 +52,9 @@ class StackElement {
 
 class StringStackElement extends StackElement {
   parseValue(value) {
-    return `"${value}"`;
+    return quote(value);
+    // return JSON.stringify(value);
+    // return `"${value}"`;
   }
 }
 
