@@ -1,5 +1,5 @@
 {
-  "name": "streamify-json",
+  "name": "throughput",
   "version": "1.0.0",
   "description": "Stream json as a readable stream",
   "main": "index.js",
