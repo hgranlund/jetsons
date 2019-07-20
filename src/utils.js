@@ -1,6 +1,6 @@
 const rxEscapable = /[\\"\u0000-\u001f\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
 
-const escape = string =>
+const escapeString = string =>
   string.replace(rxEscapable, char => {
     switch (char) {
       case '\b':
@@ -25,6 +25,6 @@ const escape = string =>
     }
   });
 
-const quote = string => `"${escape(string)}"`;
+const quote = string => `"${escapeString(string)}"`;
 
-module.exports = { quote, escape };
+module.exports = { quote, escapeString };

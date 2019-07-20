@@ -8,6 +8,7 @@ class Streamify extends Readable {
     this.stack = [];
     this.addToStack(value);
   }
+
   get peekStack() {
     return this.stack[0];
   }

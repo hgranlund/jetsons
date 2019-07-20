@@ -1,5 +1,5 @@
 const { Stream } = require('stream');
-const { quote } = require('./utils');
+const { quote, escapeString } = require('./utils');
 
 class StackElement {
   static factory(value) {
@@ -74,29 +74,27 @@ class NumberStackElement extends StackElement {
   }
 }
 
-class StringStreamStackElement extends StackElement {
-  async next() {
-    this._isComplete = true;
-    return this.state('"', [
-      new StreamStackElement(this.value),
-      new StackElement('"'),
-    ]);
-  }
-}
-
 class StreamStackElement extends StackElement {
   constructor(value) {
     super(value);
     this.error = null;
+    this.endState = super.state();
+    this.firstState = null;
+    this.first = true;
     value
       .on('end', () => {
-        this._isComplete = true;
+        this.hasEnded = true;
       })
       .on('error', error => {
         this.error = error;
       });
   }
-  whenReady() {
+
+  readWhenReady() {
+    const chunck = this.value.read();
+    if (chunck !== null) {
+      return Promise.resolve(chunck);
+    }
     return new Promise((resolve, reject) => {
       const endListener = () => resolve();
       this.value.once('end', endListener);
@@ -104,7 +102,7 @@ class StreamStackElement extends StackElement {
       this.value.once('readable', () => {
         this.value.removeListener('end', endListener);
         this.value.removeListener('error', reject);
-        resolve();
+        resolve(this.value.read());
       });
     });
   }
@@ -112,18 +110,41 @@ class StreamStackElement extends StackElement {
   async next() {
     if (this.error) {
       this._isComplete = true;
+      this.hasEnded = true;
       throw this.error;
     }
-    if (this._isComplete) {
-      return this.state();
+    if (this.first) {
+      this.first = false;
+      if (this.firstState) {
+        return this.firstState;
+      }
     }
-    await this.whenReady();
-    const chunck = this.value.read();
-    if (chunck || this._isComplete) {
+    if (this.hasEnded) {
+      this._isComplete = true;
+      return this.endState;
+    }
+    const chunck = await this.readWhenReady();
+    if (chunck || this.hasEnded) {
       return this.state(chunck);
     } else {
       return this.next();
     }
+  }
+}
+
+class StringStreamStackElement extends StreamStackElement {
+  constructor(value) {
+    super(value);
+    this.first = true;
+    this.firstState = super.state(null, [new StackElement('"')]);
+    this.endState = super.state('"');
+  }
+
+  state(next, elements = []) {
+    if (!next) {
+      return super.state(null, elements);
+    }
+    return super.state(escapeString(next.toString()), elements);
   }
 }
 

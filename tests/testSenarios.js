@@ -37,6 +37,14 @@ const legalSenarios = [
       aKeyWithString: 'aString',
     },
   }),
+  senario('a legal json with String and special chars', {
+    input: {
+      aKeyWithString: 'line1\nline2',
+    },
+    expectedResult: {
+      aKeyWithString: 'line1\nline2',
+    },
+  }),
   senario('a legal json with number as String', {
     input: {
       aKeyWithString: '1',
@@ -51,6 +59,14 @@ const legalSenarios = [
     },
     expectedResult: {
       aKeyWithString: 'true',
+    },
+  }),
+  senario('a legal json with Unicode Character', {
+    input: {
+      aKeyWithString: `\u007f#\u0600`,
+    },
+    expectedResult: {
+      aKeyWithString: `\u007f#\u0600`,
     },
   }),
   senario('a legal json with null value', {
@@ -105,6 +121,14 @@ const legalSenarios = [
     },
     expectedResult: {
       aKeyWithStream: 'aValue',
+    },
+  }),
+  senario('a legal json with string stream with newline', {
+    input: {
+      aKeyWithStream: toStream('aline\nAnotherline'),
+    },
+    expectedResult: {
+      aKeyWithStream: 'aline\nAnotherline',
     },
   }),
   senario('a legal json with navite stream', {
