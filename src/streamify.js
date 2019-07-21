@@ -1,20 +1,21 @@
 const StackElement = require('./stackElements');
 const { Readable } = require('stream');
+const Deque = require('double-ended-queue');
 
 class Streamify extends Readable {
   constructor(value) {
     super();
     this.hasEnded = false;
-    this.stack = [];
+    this.stack = new Deque(128);
     this.addToStack(value);
   }
 
   get peekStack() {
-    return this.stack[0];
+    return this.stack.peekFront();
   }
 
   get isEmpty() {
-    return !this.stack.length;
+    return this.stack.isEmpty();
   }
 
   _read() {
@@ -60,7 +61,7 @@ class Streamify extends Readable {
       this.stack.shift();
     }
     if (elements.length) {
-      this.stack = elements.concat(this.stack);
+      elements.reverse().forEach(elm => this.stack.unshift(elm));
     }
     if (next) {
       return this.push(next);

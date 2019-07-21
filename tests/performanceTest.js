@@ -3,7 +3,8 @@ const { toJson } = require('./testUtils');
 const JsonStreamifyObject = require('../src');
 const { PerformanceTest } = require('../../performaceTester/src');
 const { Writable, Readable } = require('stream');
-const JsonStreamStringify = require('../src/json-stream-json');
+// const JsonStreamStringify = require('../src/json-stream-json');
+const JsonStreamStringify = require('json-stream-stringify');
 const hugeJson = JSON.parse(readFileSync('tests/data/quotes.json'));
 const devNullStream = () =>
   Writable({
@@ -72,6 +73,14 @@ const hugeJsonTestOld = toPerformanceTest(
   true,
 );
 
+const testEqualResult = async obj => {
+  const oldJson = await toJson(new JsonStreamStringify(obj()));
+  const newJson = await toJson(new JsonStreamifyObject(obj()));
+  if (JSON.stringify(oldJson) != JSON.stringify(newJson)) {
+    console.error('new and old are not equal');
+  }
+};
+
 // const tests = [simpleJsonOldTest];
 const tests = [
   simpleJsonTest,
@@ -85,7 +94,7 @@ const tests = [
 tests
   .reduce(async (lastProm, test) => {
     await lastProm;
-    return test.run(1);
+    return test.run(100);
   }, Promise.resolve())
   .then(() => {
     console.table(tests.map(test => test.result()));
@@ -93,3 +102,17 @@ tests
   .catch(error => {
     console.log(error);
   });
+
+testEqualResult(() => ({
+  test: 1,
+  test2: 'test',
+  test3: [1, 2, 3],
+}));
+
+testEqualResult(() => ({
+  lorem: createReadStream('tests/data/loremIpsum-4mb.txt'),
+}));
+
+testEqualResult(() => ({
+  lorem: createReadStream('tests/data/loremIpsum-4mb.txt'),
+}));

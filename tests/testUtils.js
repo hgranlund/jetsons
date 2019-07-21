@@ -18,7 +18,7 @@ const toJson = stream => {
         } catch (error) {
           reject(
             new Error(`${error.message}
-            ${inspect(strings.join('').substring(0, 100))}`),
+            ${inspect(strings.join(''))}`),
           );
         }
       })

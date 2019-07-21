@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "pref": "node tests/performanceTest.js"
+    "bench": "node tests/performanceTest.js"
   },
   "author": "Simen Haugerud Granlund",
   "license": "ISC",
@@ -13,11 +13,12 @@
     "array-to-stream": "^1.0.2",
     "eslint": "^6.0.1",
     "into-stream": "^5.1.0",
+    "jest-extended": "^0.11.2",
     "jest": "^24.8.0"
   },
   "dependencies": {
     "@types/jest": "^24.0.15",
     "concat-stream": "^2.0.0",
-    "jest-extended": "^0.11.2"
+    "double-ended-queue": "^2.1.0-0"
   }
 }
