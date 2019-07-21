@@ -18,7 +18,7 @@ const toJson = stream => {
         } catch (error) {
           reject(
             new Error(`${error.message}
-            ${inspect(strings.join(''))}`),
+            ${inspect(strings.join('').substring(0, 100))}`),
           );
         }
       })
@@ -56,4 +56,15 @@ const intoObjectStream = obj => {
   return stream;
 };
 
-module.exports = { toJson, toStream };
+function* fibonacci(n) {
+  const infinite = !n && n !== 0;
+  let current = 0;
+  let next = 1;
+
+  while (infinite || n--) {
+    yield current;
+    [current, next] = [next, current + next];
+  }
+}
+
+module.exports = { toJson, toStream, fibonacci };

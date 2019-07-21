@@ -35,7 +35,8 @@ class Streamify extends Readable {
       .catch(error => {
         this.error = error;
         this.hasEnded = true;
-        setImmediate(this.emit('error', error));
+        this.reading = false;
+        setImmediate(() => this.emit('error', error));
       });
   }
 

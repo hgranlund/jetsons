@@ -4,7 +4,8 @@
   "description": "Stream json as a readable stream",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "pref": "node tests/performanceTest.js"
   },
   "author": "Simen Haugerud Granlund",
   "license": "ISC",

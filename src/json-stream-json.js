@@ -43,6 +43,30 @@ const stackItemOpen = {
   ReadableObject: '[',
 };
 
+function escapeString(string) {
+  // Modified code, original code by Douglas Crockford
+  // Original: https://github.com/douglascrockford/JSON-js/blob/master/json2.js
+
+  // If the string contains no control characters, no quote characters, and no
+  // backslash characters, then we can safely slap some quotes around it.
+  // Otherwise we must also replace the offending characters with safe escape
+  // sequences.
+
+  return string.replace(rxEscapable, a => {
+    const c = meta[a];
+    return typeof c === 'string'
+      ? c
+      : `\\u${a
+          .charCodeAt(0)
+          .toString(16)
+          .padStart(4, '0')}`;
+  });
+}
+
+function quoteString(string) {
+  return `"${escapeString(string)}"`;
+}
+
 function readAsPromised(stream, size) {
   const value = stream.read(size);
 
@@ -50,6 +74,7 @@ function readAsPromised(stream, size) {
     return new Promise((resolve, reject) => {
       const endListener = () => resolve(null);
       stream.once('end', endListener);
+      stream.once('finish', endListener);
       stream.once('error', reject);
       stream.once('readable', () => {
         stream.removeListener('end', endListener);
@@ -68,7 +93,7 @@ function recursiveResolve(promise) {
 }
 
 class JsonStreamStringify extends Readable {
-  constructor(value, replacer, spaces) {
+  constructor(value, replacer, spaces, cycle) {
     super({});
     let gap;
     const spaceType = typeof spaces;
@@ -76,6 +101,9 @@ class JsonStreamStringify extends Readable {
       gap = Number.isFinite(spaces) ? ' '.repeat(spaces) : spaces;
     }
     Object.assign(this, {
+      visited: cycle ? new WeakMap() : new WeakSet(),
+      cycle,
+      closed: false,
       stack: [],
       replacerFunction: replacer instanceof Function && replacer,
       replacerArray: Array.isArray(replacer) && replacer,
@@ -83,6 +111,20 @@ class JsonStreamStringify extends Readable {
       depth: 0,
     });
     this.addToStack(value);
+  }
+
+  cycler(key, value) {
+    const existingPath = this.visited.get(value);
+    if (existingPath) {
+      return {
+        $ref: existingPath,
+      };
+    }
+    let path = this.path();
+    if (key !== undefined) path.push(key);
+    path = path.map(v => `[${Number.isInteger(v) ? v : quoteString(v)}]`);
+    this.visited.set(value, path.length ? `$${path.join('')}` : '$');
+    return value;
   }
 
   addToStack(value, key, index, parent) {
@@ -223,6 +265,8 @@ class JsonStreamStringify extends Readable {
   }
 
   _push(data) {
+    // console.log('push: ' + data);
+
     this.pushCalled = true;
     this.push(data);
   }
