@@ -62,6 +62,10 @@ function* fibonacci(n) {
   let next = 1;
 
   while (infinite || n--) {
+    if (current >= Number.MAX_SAFE_INTEGER) {
+      current = 0;
+      next = 1;
+    }
     yield current;
     [current, next] = [next, current + next];
   }

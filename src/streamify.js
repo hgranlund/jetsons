@@ -18,27 +18,27 @@ class Streamify extends Readable {
     return this.stack.isEmpty();
   }
 
-  _read() {
+  shouldStartToRead() {
     if (this.reading) {
-      return null;
+      return false;
     }
     if (this.isEmpty) {
       this.push(null);
       this.hasEnded = true;
-      return;
+      return false;
     }
     if (this.hasEnded) {
-      return;
+      return false;
+    }
+    return true;
+  }
+
+  _read() {
+    if (!this.shouldStartToRead()) {
+      return null;
     }
     this.reading = true;
-    this.processStack()
-      .then(() => (this.reading = false))
-      .catch(error => {
-        this.error = error;
-        this.hasEnded = true;
-        this.reading = false;
-        setImmediate(() => this.emit('error', error));
-      });
+    this.processStack().then(() => (this.reading = false));
   }
 
   addToStack(value) {
@@ -46,11 +46,18 @@ class Streamify extends Readable {
   }
 
   async processStack() {
-    const toContinue = await this.processTopStackElement();
-    if (toContinue) {
-      return this.processStack();
+    try {
+      const toContinue = await this.processTopStackElement();
+      if (toContinue) {
+        return this.processStack();
+      }
+      return toContinue;
+    } catch (error) {
+      this.error = error;
+      this.hasEnded = true;
+      setImmediate(() => this.emit('error', error));
+      return false;
     }
-    return toContinue;
   }
 
   async processTopStackElement() {
