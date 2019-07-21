@@ -1,6 +1,13 @@
 const intoStream = require('into-stream');
 const { Readable } = require('stream');
-const { inspect } = require('util');
+const { Writable } = require('stream');
+
+const devNullStream = () =>
+  Writable({
+    write(chunk, encoding, done) {
+      setImmediate(done);
+    },
+  });
 
 const toStream = (value, streamAsRaw = false) => {
   if (streamAsRaw) {
@@ -45,4 +52,4 @@ function* fibonacci(n) {
   }
 }
 
-module.exports = { toStream, fibonacci };
+module.exports = { toStream, fibonacci, devNullStream };

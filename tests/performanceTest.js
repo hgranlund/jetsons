@@ -1,18 +1,10 @@
 const { createReadStream, readFileSync, writeFileSync } = require('fs');
-const { toJson, fibonacci } = require('./testUtils');
+const { toJson, fibonacci, devNullStream } = require('./testUtils');
 const { toJsonStream } = require('../src');
 const { PerformanceTest } = require('../../performaceTester/src');
-const { Writable } = require('stream');
 const JsonStreamStringify = require('json-stream-stringify');
 
 const hugeJson = JSON.parse(readFileSync('tests/data/quotes.json'));
-
-const devNullStream = () =>
-  Writable({
-    write(chunk, encoding, done) {
-      setImmediate(done);
-    },
-  });
 
 const runJsonStrimifyObject = (obj, useOld = false) => () => {
   const stream = useOld ? new JsonStreamStringify(obj()) : toJsonStream(obj());

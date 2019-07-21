@@ -9,9 +9,9 @@ const legalSenarios = [
     input: () => [1, 2, 3],
     expectedResult: [1, 2, 3],
   }),
-  senario('a legal array with Number, string and boolean', {
-    input: () => [1, 'aString', false],
-    expectedResult: [1, 'aString', false],
+  senario('a legal array with Number, string, null and boolean', {
+    input: () => [1, 'aString', false, null],
+    expectedResult: [1, 'aString', false, null],
   }),
   senario('a legal json with Number', {
     input: () => ({

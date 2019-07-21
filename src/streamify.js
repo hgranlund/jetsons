@@ -42,7 +42,11 @@ class Streamify extends Readable {
   }
 
   addToStack(value) {
-    this.stack.push(StackElement.factory(value));
+    try {
+      this.stack.push(StackElement.factory(value));
+    } catch (error) {
+      this.handleError(error);
+    }
   }
 
   async processStack() {
@@ -53,11 +57,15 @@ class Streamify extends Readable {
       }
       return toContinue;
     } catch (error) {
-      this.error = error;
-      this.hasEnded = true;
-      setImmediate(() => this.emit('error', error));
+      this.handleError(error);
       return false;
     }
+  }
+
+  handleError(error) {
+    this.error = error;
+    this.hasEnded = true;
+    setImmediate(() => this.emit('error', error));
   }
 
   async processTopStackElement() {

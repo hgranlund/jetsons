@@ -81,6 +81,7 @@ class StreamStackElement extends StackElement {
     this.endState = super.state();
     this.firstState = null;
     this.first = true;
+    this.validate();
     value
       .on('end', () => {
         this.hasEnded = true;
@@ -88,6 +89,21 @@ class StreamStackElement extends StackElement {
       .on('error', error => {
         this.error = error;
       });
+  }
+
+  validate() {
+    if (
+      this.value._readableState.ended &&
+      this.value._readableState.endEmitted
+    ) {
+      this.error = new Error(
+        'Readable Stream has already ended. Unable to process it!',
+      );
+      throw this.error;
+    } else if (this.value._readableState.flowing) {
+      this.error = new Error('Readable Stream is already in flowing mode.');
+      throw this.error;
+    }
   }
 
   readWhenReady() {
