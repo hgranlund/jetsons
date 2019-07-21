@@ -1,6 +1,6 @@
 const { createReadStream, readFileSync, writeFileSync } = require('fs');
 const { toJson, fibonacci } = require('./testUtils');
-const JsonStreamifyObject = require('../src');
+const { toJsonStream } = require('../src');
 const { PerformanceTest } = require('../../performaceTester/src');
 const { Writable } = require('stream');
 const JsonStreamStringify = require('json-stream-stringify');
@@ -15,9 +15,7 @@ const devNullStream = () =>
   });
 
 const runJsonStrimifyObject = (obj, useOld = false) => () => {
-  const stream = useOld
-    ? new JsonStreamStringify(obj())
-    : new JsonStreamifyObject(obj());
+  const stream = useOld ? new JsonStreamStringify(obj()) : toJsonStream(obj());
 
   return new Promise((resolve, reject) => {
     stream.on('end', resolve).on('error', reject);
@@ -84,13 +82,13 @@ const hugeArrayTestOld = toPerformanceTest(
 
 const tests = [
   simpleJsonTest,
-  simpleJsonTestOld,
+  // simpleJsonTestOld,
   jsonWith4MBStringStream,
-  jsonWith4MBStringStreamOld,
+  // jsonWith4MBStringStreamOld,
   hugeJsonTest,
-  hugeJsonTestOld,
+  // hugeJsonTestOld,
   hugeArrayTest,
-  hugeArrayTestOld,
+  // hugeArrayTestOld,
 ];
 
 const performanceTests = tests.map(
@@ -99,7 +97,7 @@ const performanceTests = tests.map(
 performanceTests
   .reduce(async (lastProm, test) => {
     await lastProm;
-    return test.run(10);
+    return test.run(50);
   }, Promise.resolve())
   .then(() => {
     const results = performanceTests.map(test => test.result());
@@ -108,22 +106,6 @@ performanceTests
   .catch(error => {
     console.log(error);
   });
-
-const compareResults = (newResults, oldResults) => {
-  console.table(
-    newResults.map((newResult, i) => {
-      const oldResult = oldResults[i];
-      return Object.entries(newResult).reduce((result, [key, value]) => {
-        if (key == 'name') {
-          result[key] = value;
-        } else {
-          result[key] = value - oldResult[key];
-        }
-        return result;
-      }, {});
-    }),
-  );
-};
 
 const testEquals = () => {
   const testEqualResult = async obj => {
@@ -155,7 +137,14 @@ const handleResults = results => {
     `tests/runs/performanceRun-${new Date().toISOString()}.json`,
     JSON.stringify(results),
   );
-  const prevResult = JSON.parse(readFileSync(`tests/runs/performanceRun.json`));
-  compareResults(results, prevResult);
+  const prevResults = JSON.parse(
+    readFileSync(`tests/runs/performanceRun.json`),
+  );
+  console.table(
+    performanceTests.map((test, i) => {
+      const prevResult = prevResults[i];
+      return test.compareWith(prevResult);
+    }),
+  );
 };
 // testEquals();
