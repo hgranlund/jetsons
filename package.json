@@ -1,26 +1,31 @@
 {
   "name": "throughput",
   "version": "1.0.0",
-  "description": "Stream json as a readable stream",
+  "description": "Stringifies objects to a Readable stream on a JSON.stringify fashion",
   "main": "index.js",
   "scripts": {
     "test": "jest",
     "bench": "node tests/benchmark.js",
     "perf": "node tests/performanceTest.js"
   },
+  "keywords": [
+    "stream",
+    "streaming",
+    "json",
+    "streamify",
+    "readable"
+  ],
   "author": "Simen Haugerud Granlund",
   "license": "ISC",
   "devDependencies": {
-    "array-to-stream": "^1.0.2",
+    "@types/jest": "^24.0.15",
     "eslint": "^6.0.1",
     "into-stream": "^5.1.0",
     "jest-extended": "^0.11.2",
+    "benchmark": "^2.1.4",
     "jest": "^24.8.0"
   },
   "dependencies": {
-    "@types/jest": "^24.0.15",
-    "benchmark": "^2.1.4",
-    "double-ended-queue": "^2.1.0-0",
-    "json-stream-stringify": "^2.0.1"
+    "double-ended-queue": "^2.1.0-0"
   }
 }
