@@ -2,3 +2,4 @@ node_modules
 report.20*.json
 .clinic/
 tests/runs/performanceRun-2019*
+.vscode/settings.json

@@ -1,7 +1,7 @@
 {
   "name": "throughput",
   "version": "1.0.0",
-  "description": "Stringifies objects to a Readable stream on a JSON.stringify fashion",
+  "description": "Stringifies objects as a Readable stream in a JSON.stringify fashion",
   "main": "index.js",
   "scripts": {
     "test": "jest",
