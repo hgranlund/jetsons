@@ -1,10 +1,15 @@
-const { toStream } = require('./testUtils');
+const { toStream, fibonacci } = require('./testUtils');
+const { JSONStream } = require('../src');
 
 const senario = (name, { input, expectedResult }) => {
   return [name, { input: () => input(), expectedResult }];
 };
 
 const legalSenarios = [
+  senario('a empty array', {
+    input: () => [],
+    expectedResult: [],
+  }),
   senario('a legal array with Number', {
     input: () => [1, 2, 3],
     expectedResult: [1, 2, 3],
@@ -52,6 +57,13 @@ const legalSenarios = [
     expectedResult: {
       aKeyWithString: '1',
     },
+  }),
+  senario('a object with toJSON method', {
+    input: () => ({
+      aObjProp: '',
+      toJSON: () => ({ toJSONProp: 'From toJSON method' }),
+    }),
+    expectedResult: { toJSONProp: 'From toJSON method' },
   }),
   senario('a legal json with boolean as String', {
     input: () => ({
@@ -131,9 +143,9 @@ const legalSenarios = [
       aKeyWithStream: 'aline\nAnotherline',
     },
   }),
-  senario('a legal json with navite stream', {
+  senario('a legal json with raw stream', {
     input: () => ({
-      aKeyWithStream: toStream('"aValue"', true),
+      aKeyWithStream: toStream('"aValue"', JSONStream.jsonTypes.raw),
     }),
     expectedResult: {
       aKeyWithStream: 'aValue',
@@ -147,12 +159,61 @@ const legalSenarios = [
       aKeyWithStream: { streamed: 'value' },
     },
   }),
+  senario('a legal json with fibonacci as string stream', {
+    input: () => ({
+      aFibonacciStream: toStream(fibonacci(1, 9), JSONStream.jsonTypes.string),
+    }),
+    expectedResult: {
+      aFibonacciStream: '1123581321',
+    },
+  }),
+  senario('a legal json with fibonacci as object stream', {
+    input: () => ({
+      aFibonacciStream: toStream(fibonacci(1, 9), JSONStream.jsonTypes.obejct),
+    }),
+    expectedResult: {
+      aFibonacciStream: 1123581321,
+    },
+  }),
+  senario('a legal json with fibonacci as array stream', {
+    input: () => ({
+      aFibonacciStream: toStream(fibonacci(1, 9), JSONStream.jsonTypes.array),
+    }),
+    expectedResult: {
+      aFibonacciStream: [1, 1, 2, 3, 5, 8, 13, 21],
+    },
+  }),
+  senario('a legal json with fibonacci as raw stream', {
+    input: () => ({
+      aFibonacciStream: toStream(
+        fibonacci(1, 9, true),
+        JSONStream.jsonTypes.raw,
+      ),
+    }),
+    expectedResult: {
+      aFibonacciStream: 1123581321,
+    },
+  }),
   senario('a legal json with promise', {
     input: () => ({
       aKeyWithPromise: Promise.resolve('aValue'),
     }),
     expectedResult: {
       aKeyWithPromise: 'aValue',
+    },
+  }),
+  senario('a legal json with undefined', {
+    input: () => ({
+      aUndefinedKey: undefined,
+    }),
+    expectedResult: {},
+  }),
+  senario('a legal json with Date', {
+    input: () => ({
+      nodejsCreated: new Date(2009, 5, 27),
+    }),
+    expectedResult: {
+      nodejsCreated: '2009-06-26T22:00:00.000Z',
     },
   }),
 ];

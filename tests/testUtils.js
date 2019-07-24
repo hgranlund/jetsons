@@ -1,7 +1,5 @@
 const intoStream = require('into-stream');
-const { Readable } = require('stream');
-const { Writable } = require('stream');
-
+const { Readable, Writable } = require('stream');
 const devNullStream = () =>
   Writable({
     write(chunk, encoding, done) {
@@ -9,16 +7,20 @@ const devNullStream = () =>
     },
   });
 
-const toStream = (value, streamAsRaw = false) => {
-  if (streamAsRaw) {
-    const stream = intoStream('"aValue"');
-    stream.streamRaw = true;
-    return stream;
+const toGenericStream = value => {
+  if (value.next instanceof Function) {
+    return Readable.from(value, { objectMode: true });
   } else if (typeof value === 'string') {
     return intoStream(value);
   } else {
     return intoObjectStream(value);
   }
+};
+
+const toStream = (value, jsonType) => {
+  const stream = toGenericStream(value);
+  stream.jsonType = jsonType;
+  return stream;
 };
 
 const intoObjectStream = obj => {
@@ -37,17 +39,20 @@ const intoObjectStream = obj => {
   return stream;
 };
 
-function* fibonacci(n) {
-  const infinite = !n && n !== 0;
+function* fibonacci(from, to, useString = false) {
+  const parse = useString ? String : v => v;
+  const infinite = !to && to !== 0;
   let current = 0;
   let next = 1;
 
-  while (infinite || n--) {
+  while (infinite || to--) {
     if (current >= Number.MAX_SAFE_INTEGER) {
       current = 0;
       next = 1;
     }
-    yield current;
+    if (current >= from) {
+      yield parse(current);
+    }
     [current, next] = [next, current + next];
   }
 }

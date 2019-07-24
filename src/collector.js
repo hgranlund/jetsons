@@ -1,4 +1,4 @@
-const JsonStream = require('./streamify');
+const JsonStream = require('./jsonStream');
 
 class Collector {
   constructor(value) {
@@ -7,10 +7,13 @@ class Collector {
   }
 
   toJson() {
+    if (this.json instanceof Promise) {
+      return this.json;
+    }
     if (this.json !== '') {
       Promise.resolve(this.json);
     }
-    return new Promise((resolve, reject) => {
+    this.json = new Promise((resolve, reject) => {
       let string = '';
       this.jsonStream
         .on('readable', () => {
@@ -27,10 +30,18 @@ class Collector {
           reject(error);
         });
     });
+    return this.json;
   }
 
   toObject() {
-    return this.toJson().then(jsonString => JSON.parse(jsonString));
+    return this.toJson().then(jsonString => {
+      try {
+        return JSON.parse(jsonString);
+      } catch (error) {
+        error.jsonString = jsonString;
+        throw error;
+      }
+    });
   }
 }
 

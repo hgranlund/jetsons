@@ -1,20 +1,44 @@
 const { Stream } = require('stream');
 const { quote, escapeString } = require('./utils');
 
+const jsonTypes = {
+  string: 'string',
+  object: 'object',
+  array: 'array',
+  raw: 'raw',
+};
+
 class StackElement {
   static factory(value) {
+    if (value && value.toJSON instanceof Function) {
+      value = value.toJSON();
+    }
     const type = typeof value;
     if (!value) return new PrimitiveStackElement(value);
     if (typeof value.then === 'function') return new PromiseStackElement(value);
     if (value instanceof Promise) return new PromiseStackElement(value);
+    if (value instanceof Function) return new EmptyStackElement();
+    if (type === 'symbol') return new EmptyStackElement();
     if (type === 'number') return new NumberStackElement(value);
     if (type === 'string') return new StringStackElement(value);
     if (type === 'boolean') return new PrimitiveStackElement(value);
     if (value instanceof Stream) {
-      if (value._readableState.objectMode) {
-        return new ObjectStreamStackElement(value);
-      } else if (value.streamRaw) {
+      if (value.jsonType) {
+        switch (value.jsonType) {
+          case jsonTypes.array:
+            return new ArrayStreamStackElement(value);
+          case jsonTypes.raw:
+            return new StreamStackElement(value);
+          case jsonTypes.string:
+            return new StringStreamStackElement(value);
+          case jsonTypes.object:
+            return new ObjectStreamStackElement(value);
+          default:
+            break;
+        }
         return new StreamStackElement(value);
+      } else if (value._readableState.objectMode) {
+        return new ObjectStreamStackElement(value);
       } else {
         return new StringStreamStackElement(value);
       }
@@ -53,8 +77,13 @@ class StackElement {
 class StringStackElement extends StackElement {
   parseValue(value) {
     return quote(value);
-    // return JSON.stringify(value);
-    // return `"${value}"`;
+  }
+}
+
+class EmptyStackElement extends StackElement {
+  constructor() {
+    super();
+    this._isComplete = true;
   }
 }
 
@@ -78,6 +107,7 @@ class StreamStackElement extends StackElement {
   constructor(value) {
     super(value);
     this.error = null;
+    this.isEmpty = false;
     this.endState = super.state();
     this.firstState = null;
     this.first = true;
@@ -99,10 +129,8 @@ class StreamStackElement extends StackElement {
       this.error = new Error(
         'Readable Stream has already ended. Unable to process it!',
       );
-      throw this.error;
     } else if (this.value._readableState.flowing) {
       this.error = new Error('Readable Stream is already in flowing mode.');
-      throw this.error;
     }
   }
 
@@ -110,6 +138,9 @@ class StreamStackElement extends StackElement {
     const chunck = this.value.read();
     if (chunck !== null) {
       return Promise.resolve(chunck);
+    }
+    if (this.hasEnded) {
+      return Promise.resolve(null);
     }
     return new Promise((resolve, reject) => {
       const endListener = () => resolve();
@@ -135,15 +166,37 @@ class StreamStackElement extends StackElement {
         return this.firstState;
       }
     }
-    if (this.hasEnded) {
+    const chunck = await this.readWhenReady();
+    if (chunck !== null) {
+      return this.state(chunck);
+    } else if (this.hasEnded) {
+      this.isEmpty = true;
       this._isComplete = true;
       return this.endState;
-    }
-    const chunck = await this.readWhenReady();
-    if (chunck || this.hasEnded) {
-      return this.state(chunck);
     } else {
       return this.next();
+    }
+  }
+}
+
+class ArrayStreamStackElement extends StreamStackElement {
+  constructor(value) {
+    super(value);
+    this.first = true;
+    this.firstState = super.state(null, [new StackElement('[')]);
+    this.endState = super.state(']');
+    this.secondStateSendt = false;
+  }
+
+  state(next, elements = []) {
+    if (!next) {
+      return super.state(null, elements);
+    }
+    if (!this.secondStateSendt) {
+      this.secondStateSendt = true;
+      return super.state(escapeString(next.toString()), elements);
+    } else {
+      return super.state(', ' + escapeString(next.toString()), elements);
     }
   }
 }
@@ -211,11 +264,18 @@ class ObjectStackElement extends StackElement {
     super(value);
     this.first = true;
     this.type = 'object';
-    this.entries = Object.entries(value);
+    this.entries = Object.entries(value).filter(([, value]) =>
+      this.shouldValueBeStringified(value),
+    );
   }
 
-  get hasEntriesLeft() {
-    return this.entries.length;
+  get isEmpty() {
+    return !this.entries.length;
+  }
+
+  shouldValueBeStringified(value) {
+    const type = typeof value;
+    return value !== undefined && type !== 'function' && type !== 'symbol';
   }
 
   async next() {
@@ -223,7 +283,7 @@ class ObjectStackElement extends StackElement {
       this.first = false;
       return this.state('{');
     }
-    if (!this.hasEntriesLeft) {
+    if (this.isEmpty) {
       this._isComplete = true;
       return this.state('}');
     }
@@ -232,10 +292,11 @@ class ObjectStackElement extends StackElement {
     const next = `"${key}": `;
     const nextElements = [StackElement.factory(value)];
 
-    if (this.hasEntriesLeft) {
+    if (!this.isEmpty) {
       nextElements.push(new StackElement(','));
     }
     return this.state(next, nextElements);
   }
 }
-module.exports = StackElement;
+
+module.exports = { StackElement, jsonTypes };

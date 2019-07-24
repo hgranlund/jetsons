@@ -27,23 +27,4 @@ const escapeString = string =>
 
 const quote = string => `"${escapeString(string)}"`;
 
-const toJson = stream => {
-  return new Promise((resolve, reject) => {
-    const strings = [];
-    stream
-      .on('readable', () => {
-        let data;
-        while ((data = stream.read())) {
-          strings.push(data.toString());
-        }
-      })
-      .on('end', () => {
-        resolve(strings.join(''));
-      })
-      .on('error', error => {
-        reject(error);
-      });
-  });
-};
-
-module.exports = { quote, escapeString, toJson };
+module.exports = { quote, escapeString };

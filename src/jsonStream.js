@@ -1,13 +1,13 @@
-const StackElement = require('./stackElements');
+const { StackElement, jsonTypes } = require('./stackElements');
 const { Readable } = require('stream');
 const Deque = require('double-ended-queue');
 
-class Streamify extends Readable {
+class JSONStream extends Readable {
   constructor(value) {
     super();
     this.hasEnded = false;
     this.stack = new Deque(128);
-    this.addToStack(value);
+    this.stack.push(StackElement.factory(value));
   }
 
   get peekStack() {
@@ -39,14 +39,6 @@ class Streamify extends Readable {
     }
     this.reading = true;
     this.processStack().then(() => (this.reading = false));
-  }
-
-  addToStack(value) {
-    try {
-      this.stack.push(StackElement.factory(value));
-    } catch (error) {
-      this.handleError(error);
-    }
   }
 
   async processStack() {
@@ -85,4 +77,6 @@ class Streamify extends Readable {
   }
 }
 
-module.exports = Streamify;
+JSONStream.jsonTypes = jsonTypes;
+
+module.exports = JSONStream;

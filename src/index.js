@@ -1,7 +1,7 @@
-const JsonStream = require('./streamify');
+const JSONStream = require('./jsonStream');
 const Collector = require('./collector');
 
 module.exports = {
-  JsonStream,
+  JSONStream,
   Collector,
 };

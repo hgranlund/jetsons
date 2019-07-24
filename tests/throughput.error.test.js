@@ -1,31 +1,34 @@
 require('jest-extended');
 const { toStream, devNullStream } = require('./testUtils');
-
+const { Collector } = require('../src');
+process.on('unhandledRejection', error => {
+  console.error(error);
+});
 describe('Throughput is loaded', () => {
-  let throughput;
-  beforeAll(() => {
-    throughput = require('../src');
-  });
-
   describe('When stream is in illegal state', () => {
-    const endedStream = toStream('value');
+    let endedStream = toStream('value');
 
-    beforeAll(() => {
-      return new Promise(resolve => {
-        endedStream.on('end', resolve);
-        endedStream.pipe(devNullStream());
-      });
+    beforeAll(done => {
+      endedStream.on('end', done);
+      endedStream.pipe(devNullStream());
     });
+
     it('should return error hen object contains an ended stream', () => {
-      expect(throughput.toJson([endedStream])).toReject();
-      expect(throughput.toObject([endedStream])).toReject();
+      const collector = new Collector(endedStream);
+
+      expect(collector.toJson()).toReject();
+      // expect(collector.toObject()).toReject();
     });
 
-    it('should return error hen object contains an stream in flowing state', () => {
+    it('should return error hen object contains an stream in flowing state', done => {
       const flowingStream = toStream('value');
+      const collector = new Collector(flowingStream);
       flowingStream.pipe(devNullStream());
-      expect(throughput.toJson([flowingStream])).toReject();
-      expect(throughput.toObject([flowingStream])).toReject();
+      setImmediate(() => {
+        expect(collector.toJson()).toResolve();
+        done();
+      });
+      // expect(collector.toObject()).toReject();
     });
   });
 });

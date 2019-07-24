@@ -98,13 +98,13 @@ Output:
 ```javascript
 const { JSONStream } = require('throughput');
 
-const arrayStream = Readable.from(fibonacciGenerator(8)):
+const arrayStream = Readable.from(fibonacciGenerator(1, 9)):
 arrayStream.jsonType = JSONStream.jsonTypes.array;
 
-const rawStream = Readable.from(fibonacciGenerator(8)):
+const rawStream = Readable.from(fibonacciStringGenerator(1, 9)):
 rawStream.jsonType = JSONStream.jsonTypes.raw;
 
-const stringStream = Readable.from(fibonacciGenerator(8)):
+const stringStream = Readable.from(fibonacciGenerator(1, 9)):
 stringStream.jsonType = JSONStream.jsonTypes.string;
 
 const jsonStream = new JSONStream({
@@ -120,9 +120,9 @@ Output:
 
 ```json
 {
-  "arrayStream": [0, 1, 1, 2, 3, 5, 8, 13, 21],
-  "rawStream": 01123581321,
-  "stringStream": "01123581321"
+  "arrayStream": [1, 1, 2, 3, 5, 8, 13, 21],
+  "rawStream": 1123581321,
+  "stringStream": "1123581321"
 }
 ```
 

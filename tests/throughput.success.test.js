@@ -1,19 +1,15 @@
 require('jest-extended');
 const { Readable } = require('stream');
 const { legalSenarios } = require('./testSenarios');
+const { JSONStream, Collector } = require('../src');
 
 describe('Throughput is loaded', () => {
-  let throughput;
-  beforeAll(() => {
-    throughput = require('../src');
-  });
-
   describe.each(legalSenarios)(
-    'and toJsonStream on senario[%#]: %s',
+    'and toJson on senario[%#]: %s',
     (name, senario) => {
       let stream;
       beforeAll(() => {
-        stream = throughput.toJsonStream(senario.input());
+        stream = new JSONStream(senario.input());
       });
 
       it('should return a Readable stream', () => {
@@ -30,25 +26,33 @@ describe('Throughput is loaded', () => {
   describe.each(legalSenarios)(
     'and toObject on senario[%#]: %s',
     (name, senario) => {
-      let result;
-      beforeAll(async () => {
-        result = await throughput.toObject(senario.input());
+      let object;
+
+      beforeAll(async done => {
+        const collector = new Collector(senario.input());
+        object = await collector.toObject();
+        done();
       });
 
       it('should return a expected output', () => {
-        expect(result).toMatchObject(senario.expectedResult);
+        expect(object).toMatchObject(senario.expectedResult);
       });
     },
   );
 
   describe.each(legalSenarios)(
-    'and toJson on senario[%#]: %s',
+    'and toJsonString on senario[%#]: %s',
     (name, senario) => {
       let jsonString;
-      beforeAll(() => {
-        return throughput.toJson(senario.input()).then(json => {
-          jsonString = json;
-        });
+
+      beforeAll(async done => {
+        const collector = new Collector(senario.input());
+        try {
+          jsonString = await collector.toJson();
+        } catch (error) {
+          console.error(`${error.message} \n ${error.jsonString}`);
+        }
+        done();
       });
 
       it('should return a string', () => {
@@ -56,8 +60,13 @@ describe('Throughput is loaded', () => {
       });
 
       it('should return a expected json string', () => {
-        const parsedJson = JSON.parse(jsonString);
-        expect(parsedJson).toMatchObject(senario.expectedResult);
+        try {
+          const parsedJson = JSON.parse(jsonString);
+          expect(parsedJson).toMatchObject(senario.expectedResult);
+        } catch (error) {
+          error.message = `${error.message} \n ${jsonString}`;
+          throw error;
+        }
       });
     },
   );
