@@ -1,6 +1,6 @@
 const { createReadStream, readFileSync, writeFileSync } = require('fs');
 const { toJson, fibonacci, devNullStream } = require('./testUtils');
-const throughput = require('../src');
+const streamier = require('../src');
 const { PerformanceTest } = require('../../performaceTester/src');
 const JsonStreamStringify = require('json-stream-stringify');
 
@@ -9,7 +9,7 @@ const hugeJson = JSON.parse(readFileSync('tests/data/quotes.json'));
 const runJsonStrimifyObject = (obj, useOld = false) => () => {
   const stream = useOld
     ? new JsonStreamStringify(obj())
-    : throughput.toJson(obj());
+    : streamier.toJson(obj());
 
   return new Promise((resolve, reject) => {
     stream.on('end', resolve).on('error', reject);

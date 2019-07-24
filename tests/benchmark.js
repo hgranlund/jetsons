@@ -1,6 +1,6 @@
 const Benchmark = require('benchmark');
 const { createReadStream, readFileSync } = require('fs');
-const throughput = require('../src');
+const streamier = require('../src');
 
 const { Writable } = require('stream');
 // const JsonStreamStringify = require('../src/json-stream-json');
@@ -18,7 +18,7 @@ const devNullStream = () =>
 const runJsonStrimifyObject = (obj, useOld = false) => () => {
   const stream = useOld
     ? new JsonStreamStringify(obj())
-    : throughput.toJson(obj());
+    : streamier.toJson(obj());
 
   return new Promise((resolve, reject) => {
     stream.on('end', resolve).on('error', reject);

@@ -4,7 +4,7 @@ const { Collector } = require('../src');
 process.on('unhandledRejection', error => {
   console.error(error);
 });
-describe('Throughput is loaded', () => {
+describe('Streamier is loaded', () => {
   describe('When stream is in illegal state', () => {
     let endedStream = toStream('value');
 
