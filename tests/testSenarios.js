@@ -6,6 +6,14 @@ const senario = (name, { input, expectedResult }) => {
 };
 
 const legalSenarios = [
+  senario('a Symbol', {
+    input: () => Symbol(42),
+    expectedResult: undefined,
+  }),
+  // senario('a undefined value', {
+  //   input: () => undefined,
+  //   expectedResult: [],
+  // }),
   senario('a empty array', {
     input: () => [],
     expectedResult: [],
@@ -218,4 +226,6 @@ const legalSenarios = [
   }),
 ];
 
-module.exports = { legalSenarios };
+module.exports = {
+  legalSenarios: legalSenarios.slice(0, legalSenarios.length),
+};

@@ -1,4 +1,8 @@
-const { StackElement, jsonTypes } = require('./stackElements');
+const {
+  StackElement,
+  EmptyStackElement,
+  jsonTypes,
+} = require('./stackElements');
 const { Readable } = require('stream');
 const Deque = require('double-ended-queue');
 
@@ -7,7 +11,12 @@ class JSONStream extends Readable {
     super();
     this.hasEnded = false;
     this.stack = new Deque(128);
-    this.stack.push(StackElement.factory(value));
+    const stackElement = StackElement.factory(value);
+    if (stackElement instanceof EmptyStackElement) {
+      this.stack.push(new StackElement(undefined));
+    } else {
+      this.stack.push(stackElement);
+    }
   }
 
   get peekStack() {
@@ -70,7 +79,7 @@ class JSONStream extends Readable {
     if (elements.length) {
       elements.reverse().forEach(elm => this.stack.unshift(elm));
     }
-    if (next) {
+    if (next !== null) {
       return this.push(next);
     }
     return true;

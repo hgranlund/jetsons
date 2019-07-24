@@ -8,50 +8,56 @@ const jsonTypes = {
   raw: 'raw',
 };
 
+const getStackElementClass = value => {
+  const type = typeof value;
+  if (!value) return PrimitiveStackElement;
+  if (typeof value.then === 'function') return PromiseStackElement;
+  if (value instanceof Promise) return PromiseStackElement;
+  if (value instanceof Function) return EmptyStackElement;
+  if (type === 'symbol') return EmptyStackElement;
+  if (type === 'number') return NumberStackElement;
+  if (type === 'string') return StringStackElement;
+  if (type === 'boolean') return PrimitiveStackElement;
+  if (value instanceof Stream) {
+    if (value.jsonType) {
+      switch (value.jsonType) {
+        case jsonTypes.array:
+          return ArrayStreamStackElement;
+        case jsonTypes.raw:
+          return StreamStackElement;
+        case jsonTypes.string:
+          return StringStreamStackElement;
+        case jsonTypes.object:
+          return ObjectStreamStackElement;
+        default:
+          break;
+      }
+      return StreamStackElement;
+    } else if (value._readableState.objectMode) {
+      return ObjectStreamStackElement;
+    } else {
+      return StringStreamStackElement;
+    }
+  }
+  if (Array.isArray(value)) return ArrayStackElement;
+  if (typeof value === 'object' || value instanceof Object) {
+    return ObjectStackElement;
+  }
+  return StackElement;
+};
+
 class StackElement {
-  static factory(value) {
+  static factory(value, parent) {
     if (value && value.toJSON instanceof Function) {
       value = value.toJSON();
     }
-    const type = typeof value;
-    if (!value) return new PrimitiveStackElement(value);
-    if (typeof value.then === 'function') return new PromiseStackElement(value);
-    if (value instanceof Promise) return new PromiseStackElement(value);
-    if (value instanceof Function) return new EmptyStackElement();
-    if (type === 'symbol') return new EmptyStackElement();
-    if (type === 'number') return new NumberStackElement(value);
-    if (type === 'string') return new StringStackElement(value);
-    if (type === 'boolean') return new PrimitiveStackElement(value);
-    if (value instanceof Stream) {
-      if (value.jsonType) {
-        switch (value.jsonType) {
-          case jsonTypes.array:
-            return new ArrayStreamStackElement(value);
-          case jsonTypes.raw:
-            return new StreamStackElement(value);
-          case jsonTypes.string:
-            return new StringStreamStackElement(value);
-          case jsonTypes.object:
-            return new ObjectStreamStackElement(value);
-          default:
-            break;
-        }
-        return new StreamStackElement(value);
-      } else if (value._readableState.objectMode) {
-        return new ObjectStreamStackElement(value);
-      } else {
-        return new StringStreamStackElement(value);
-      }
-    }
-    if (Array.isArray(value)) return new ArrayStackElement(value);
-    if (typeof value === 'object' || value instanceof Object) {
-      return new ObjectStackElement(value);
-    }
-    return new StackElement(value);
+    const StackElementClass = getStackElementClass(value);
+    return new StackElementClass(value, parent);
   }
 
-  constructor(value) {
+  constructor(value, parent) {
     this.value = this.parseValue(value);
+    this.parent = parent;
     this.type = 'Primitive';
     this._isComplete = false;
   }
@@ -299,4 +305,4 @@ class ObjectStackElement extends StackElement {
   }
 }
 
-module.exports = { StackElement, jsonTypes };
+module.exports = { StackElement, EmptyStackElement, jsonTypes };

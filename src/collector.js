@@ -14,16 +14,20 @@ class Collector {
       Promise.resolve(this.json);
     }
     this.json = new Promise((resolve, reject) => {
-      let string = '';
+      let strings = [];
       this.jsonStream
         .on('readable', () => {
           let data;
           while ((data = this.jsonStream.read())) {
-            string += data.toString();
+            strings.push(data.toString());
           }
         })
         .on('end', () => {
-          this.json = string;
+          if (strings.length) {
+            this.json = strings.join('');
+          } else {
+            this.json = undefined;
+          }
           resolve(this.json);
         })
         .on('error', error => {
@@ -36,9 +40,12 @@ class Collector {
   toObject() {
     return this.toJson().then(jsonString => {
       try {
+        if (jsonString === undefined) {
+          return jsonString;
+        }
         return JSON.parse(jsonString);
       } catch (error) {
-        error.jsonString = jsonString;
+        error.message = `${error.message} \n ${jsonString}`;
         throw error;
       }
     });

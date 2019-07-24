@@ -35,7 +35,11 @@ describe('Streamier is loaded', () => {
       });
 
       it('should return a expected output', () => {
-        expect(object).toMatchObject(senario.expectedResult);
+        if (!senario.expectedResult) {
+          expect(object).toEqual(senario.expectedResult);
+        } else {
+          expect(object).toMatchObject(senario.expectedResult);
+        }
       });
     },
   );
@@ -55,14 +59,14 @@ describe('Streamier is loaded', () => {
         done();
       });
 
-      it('should return a string', () => {
-        expect(jsonString).toBeString();
-      });
-
       it('should return a expected json string', () => {
         try {
-          const parsedJson = JSON.parse(jsonString);
-          expect(parsedJson).toMatchObject(senario.expectedResult);
+          if (!senario.expectedResult) {
+            expect(jsonString).toEqual(senario.expectedResult);
+          } else {
+            const parsedJson = JSON.parse(jsonString);
+            expect(parsedJson).toMatchObject(senario.expectedResult);
+          }
         } catch (error) {
           error.message = `${error.message} \n ${jsonString}`;
           throw error;

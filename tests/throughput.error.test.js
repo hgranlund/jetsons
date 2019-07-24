@@ -17,7 +17,7 @@ describe('Streamier is loaded', () => {
       const collector = new Collector(endedStream);
 
       expect(collector.toJson()).toReject();
-      // expect(collector.toObject()).toReject();
+      expect(collector.toObject()).toReject();
     });
 
     it('should return error hen object contains an stream in flowing state', done => {
@@ -26,9 +26,9 @@ describe('Streamier is loaded', () => {
       flowingStream.pipe(devNullStream());
       setImmediate(() => {
         expect(collector.toJson()).toResolve();
+        expect(collector.toObject()).toResolve();
         done();
       });
-      // expect(collector.toObject()).toReject();
     });
   });
 });
