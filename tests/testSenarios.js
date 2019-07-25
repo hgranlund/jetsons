@@ -10,10 +10,10 @@ const legalSenarios = [
     input: () => Symbol(42),
     expectedResult: undefined,
   }),
-  // senario('a undefined value', {
-  //   input: () => undefined,
-  //   expectedResult: [],
-  // }),
+  senario('a undefined value', {
+    input: () => undefined,
+    expectedResult: undefined,
+  }),
   senario('a empty array', {
     input: () => [],
     expectedResult: [],
@@ -226,6 +226,14 @@ const legalSenarios = [
   }),
 ];
 
+const getTestSenarios = (senarioNum = -1) => {
+  if (senarioNum < 0) {
+    return legalSenarios;
+  } else {
+    return legalSenarios.splice(senarioNum, senarioNum + 1);
+  }
+};
+
 module.exports = {
-  legalSenarios: legalSenarios.slice(0, legalSenarios.length),
+  legalSenarios: getTestSenarios(),
 };

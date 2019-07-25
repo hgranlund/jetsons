@@ -5,7 +5,7 @@ process.on('unhandledRejection', error => {
   console.error(error);
 });
 describe('Streamier is loaded', () => {
-  describe('When stream is in illegal state', () => {
+  describe('And if stream has ended', () => {
     let endedStream = toStream('value');
 
     beforeAll(done => {
@@ -13,22 +13,66 @@ describe('Streamier is loaded', () => {
       endedStream.pipe(devNullStream());
     });
 
-    it('should return error hen object contains an ended stream', () => {
-      const collector = new Collector(endedStream);
+    it('should return error when object contains an ended stream', () => {
+      const collector = new Collector([endedStream]);
 
-      expect(collector.toJson()).toReject();
-      expect(collector.toObject()).toReject();
+      const expectedError = new Error(
+        'Readable Stream has already ended. Unable to process it!',
+      );
+      expect(collector.toObject()).rejects.toEqual(expectedError);
+      expect(collector.toJson()).rejects.toEqual(expectedError);
     });
 
-    it('should return error hen object contains an stream in flowing state', done => {
+    it('should return error is stream already has ended', () => {
+      const collector = new Collector(endedStream);
+
+      const expectedError = new Error(
+        'Readable Stream has already ended. Unable to process it!',
+      );
+      expect(collector.toObject()).rejects.toEqual(expectedError);
+      expect(collector.toJson()).rejects.toEqual(expectedError);
+    });
+  });
+
+  describe('And someone else is processing the stream', () => {
+    const expectedError = new Error(
+      'ReadabelStream is in flowing mode, data may be lost',
+    );
+
+    it('should return error if stream is in flowing state before initializatoin', () => {
+      const flowingStream = toStream('value');
+      flowingStream.pipe(devNullStream());
+
+      const collector = new Collector(flowingStream);
+      expect(collector.toJson()).rejects.toEqual(expectedError);
+      expect(collector.toObject()).rejects.toEqual(expectedError);
+    });
+
+    it('should return error if stream inside structure is in flowing state before initializatoin', () => {
+      const flowingStream = toStream('value');
+      flowingStream.pipe(devNullStream());
+
+      const collector = new Collector([flowingStream]);
+      expect(collector.toJson()).rejects.toEqual(expectedError);
+      expect(collector.toObject()).rejects.toEqual(expectedError);
+    });
+
+    it('should return error if stream starts flowing during processing', () => {
       const flowingStream = toStream('value');
       const collector = new Collector(flowingStream);
+
       flowingStream.pipe(devNullStream());
-      setImmediate(() => {
-        expect(collector.toJson()).toResolve();
-        expect(collector.toObject()).toResolve();
-        done();
-      });
+      expect(collector.toJson()).rejects.toEqual(expectedError);
+      expect(collector.toObject()).rejects.toEqual(expectedError);
+    });
+
+    it('should return error if stream inside structure starts flowing during processing', () => {
+      const flowingStream = toStream('value');
+      const collector = new Collector([flowingStream]);
+
+      flowingStream.pipe(devNullStream());
+      expect(collector.toJson()).rejects.toEqual(expectedError);
+      expect(collector.toObject()).rejects.toEqual(expectedError);
     });
   });
 });

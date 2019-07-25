@@ -1,8 +1,4 @@
-const {
-  StackElement,
-  EmptyStackElement,
-  jsonTypes,
-} = require('./stackElements');
+const { StackElement, jsonTypes } = require('./stackElements');
 const { Readable } = require('stream');
 const Deque = require('double-ended-queue');
 
@@ -11,10 +7,17 @@ class JSONStream extends Readable {
     super();
     this.hasEnded = false;
     this.stack = new Deque(128);
-    const stackElement = StackElement.factory(value);
-    if (stackElement instanceof EmptyStackElement) {
+    this.addFirstStackElement(value);
+  }
+
+  addFirstStackElement(value) {
+    const shouldReturnUndefined = ['function', 'undefined', 'symbol'].includes(
+      typeof value,
+    );
+    if (shouldReturnUndefined) {
       this.stack.push(new StackElement(undefined));
     } else {
+      const stackElement = StackElement.factory(value);
       this.stack.push(stackElement);
     }
   }

@@ -1,3 +1,4 @@
+const debug = require('debug')('streamier');
 const { Stream } = require('stream');
 const { quote, escapeString } = require('./utils');
 
@@ -10,14 +11,14 @@ const jsonTypes = {
 
 const getStackElementClass = value => {
   const type = typeof value;
-  if (!value) return PrimitiveStackElement;
-  if (typeof value.then === 'function') return PromiseStackElement;
   if (value instanceof Promise) return PromiseStackElement;
   if (value instanceof Function) return EmptyStackElement;
   if (type === 'symbol') return EmptyStackElement;
   if (type === 'number') return NumberStackElement;
   if (type === 'string') return StringStackElement;
   if (type === 'boolean') return PrimitiveStackElement;
+  if (type === 'undefined') return PrimitiveStackElement;
+  if (value === null) return PrimitiveStackElement;
   if (value instanceof Stream) {
     if (value.jsonType) {
       switch (value.jsonType) {
@@ -40,6 +41,7 @@ const getStackElementClass = value => {
     }
   }
   if (Array.isArray(value)) return ArrayStackElement;
+  if (typeof value.then === 'function') return PromiseStackElement;
   if (typeof value === 'object' || value instanceof Object) {
     return ObjectStackElement;
   }
@@ -47,23 +49,27 @@ const getStackElementClass = value => {
 };
 
 class StackElement {
-  static factory(value, parent) {
+  static factory(value) {
     if (value && value.toJSON instanceof Function) {
       value = value.toJSON();
     }
     const StackElementClass = getStackElementClass(value);
-    return new StackElementClass(value, parent);
+    return new StackElementClass(value);
   }
 
-  constructor(value, parent) {
+  constructor(value) {
     this.value = this.parseValue(value);
-    this.parent = parent;
-    this.type = 'Primitive';
     this._isComplete = false;
+    debug(`StackElement initilized`);
   }
 
   get isComplete() {
     return this._isComplete;
+  }
+
+  completed() {
+    debug(`StackElement compleded`);
+    this._isComplete = true;
   }
 
   parseValue(value) {
@@ -75,7 +81,7 @@ class StackElement {
   }
 
   async next() {
-    this._isComplete = true;
+    this.completed();
     return this.state(this.value);
   }
 }
@@ -89,7 +95,7 @@ class StringStackElement extends StackElement {
 class EmptyStackElement extends StackElement {
   constructor() {
     super();
-    this._isComplete = true;
+    this.completed();
   }
 }
 
@@ -117,7 +123,7 @@ class StreamStackElement extends StackElement {
     this.endState = super.state();
     this.firstState = null;
     this.first = true;
-    this.validate();
+    this.initvValidate();
     value
       .on('end', () => {
         this.hasEnded = true;
@@ -127,7 +133,7 @@ class StreamStackElement extends StackElement {
       });
   }
 
-  validate() {
+  initvValidate() {
     if (
       this.value._readableState.ended &&
       this.value._readableState.endEmitted
@@ -136,7 +142,9 @@ class StreamStackElement extends StackElement {
         'Readable Stream has already ended. Unable to process it!',
       );
     } else if (this.value._readableState.flowing) {
-      this.error = new Error('Readable Stream is already in flowing mode.');
+      this.error = new Error(
+        'ReadabelStream is in flowing mode, data may be lost',
+      );
     }
   }
 
@@ -161,11 +169,7 @@ class StreamStackElement extends StackElement {
   }
 
   async next() {
-    if (this.error) {
-      this._isComplete = true;
-      this.hasEnded = true;
-      throw this.error;
-    }
+    this.validateOnNext();
     if (this.first) {
       this.first = false;
       if (this.firstState) {
@@ -177,10 +181,21 @@ class StreamStackElement extends StackElement {
       return this.state(chunck);
     } else if (this.hasEnded) {
       this.isEmpty = true;
-      this._isComplete = true;
+      this.completed();
       return this.endState;
     } else {
       return this.next();
+    }
+  }
+
+  validateOnNext() {
+    if (this.value._readableState.flowing) {
+      throw new Error('ReadabelStream is in flowing mode, data may be lost');
+    }
+    if (this.error) {
+      this.completed();
+      this.hasEnded = true;
+      throw this.error;
     }
   }
 }
@@ -234,7 +249,7 @@ class ObjectStreamStackElement extends StreamStackElement {
 
 class PromiseStackElement extends StackElement {
   async next() {
-    this._isComplete = true;
+    this.completed();
     const result = await this.value;
     return this.state(null, [StackElement.factory(result)]);
   }
@@ -260,7 +275,7 @@ class ArrayStackElement extends StackElement {
     });
     nextElements.pop();
     nextElements.push(new StackElement(']'));
-    this._isComplete = true;
+    this.completed();
     return this.state(null, nextElements);
   }
 }
@@ -290,7 +305,7 @@ class ObjectStackElement extends StackElement {
       return this.state('{');
     }
     if (this.isEmpty) {
-      this._isComplete = true;
+      this.completed();
       return this.state('}');
     }
 
