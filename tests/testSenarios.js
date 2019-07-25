@@ -1,8 +1,8 @@
 const { toStream, fibonacci } = require('./testUtils');
 const { JSONStream } = require('../src');
 
-const senario = (name, { input, expectedResult }) => {
-  return [name, { input: () => input(), expectedResult }];
+const senario = (name, { input, replacer, expectedResult }) => {
+  return [name, { input: () => input(), replacer, expectedResult }];
 };
 
 const legalSenarios = [
@@ -17,6 +17,10 @@ const legalSenarios = [
   senario('a empty array', {
     input: () => [],
     expectedResult: [],
+  }),
+  senario('a string', {
+    input: () => 'a string',
+    expectedResult: 'a string',
   }),
   senario('a legal array with Number', {
     input: () => [1, 2, 3],
@@ -224,6 +228,32 @@ const legalSenarios = [
       nodejsCreated: '2009-06-26T22:00:00.000Z',
     },
   }),
+  senario('a json with key replacer function', {
+    input: () => ({
+      aKeyToNotBeReplaced: 'Original Value',
+      aKeyToBeReplaced: 'Original Value',
+    }),
+    replacer: (key, value) => {
+      if (key === 'aKeyToBeReplaced') {
+        return 'A Replaced Value';
+      }
+      return value;
+    },
+    expectedResult: {
+      aKeyToNotBeReplaced: 'Original Value',
+      aKeyToBeReplaced: 'A Replaced Value',
+    },
+  }),
+  senario('a json with key replacer function', {
+    input: () => ({
+      aKeyToNotBeStringified: 'Value we dont wnat to see',
+      aKeyToBeStringified: 'Value we want to see',
+    }),
+    replacer: ['aKeyToBeStringified'],
+    expectedResult: {
+      aKeyToBeStringified: 'Value we want to see',
+    },
+  }),
 ];
 
 const getTestSenarios = (senarioNum = -1) => {
@@ -237,3 +267,25 @@ const getTestSenarios = (senarioNum = -1) => {
 module.exports = {
   legalSenarios: getTestSenarios(),
 };
+
+// senario('a json with json replacer function', {
+//   input: () => ({
+//     toBeReplaced: 'Original Value',
+//   }),
+//   replacer: (key, value) => { if (key === '') { return { replacedKey: 123 }; }
+//     return value;
+//   },
+//   expectedResult: { replacedKey: 123 },
+// }),
+// senario('a json with string replacer function', {
+//   input: () => ({
+//     toBeReplaced: 'Original Value',
+//   }),
+//   replacer: (key, value) => {
+//     if (key === '') {
+//       return 123;
+//     }
+//     return value;
+//   },
+//   expectedResult: 123,
+// }),

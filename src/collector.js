@@ -1,8 +1,8 @@
 const JsonStream = require('./jsonStream');
 
-class Collector {
-  constructor(value) {
-    this.jsonStream = new JsonStream(value);
+class Collector extends JsonStream {
+  constructor(value, replacer, space) {
+    super(value, replacer, space);
     this.json = '';
   }
 
@@ -15,13 +15,12 @@ class Collector {
     }
     this.json = new Promise((resolve, reject) => {
       let strings = [];
-      this.jsonStream
-        .on('readable', () => {
-          let data;
-          while ((data = this.jsonStream.read())) {
-            strings.push(data.toString());
-          }
-        })
+      this.on('readable', () => {
+        let data;
+        while ((data = this.read())) {
+          strings.push(data.toString());
+        }
+      })
         .on('end', () => {
           if (strings.length) {
             this.json = strings.join('');

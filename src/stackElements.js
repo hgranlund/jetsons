@@ -8,6 +8,7 @@ const jsonTypes = {
   array: 'array',
   raw: 'raw',
 };
+
 const getStackElementClass = value => {
   const type = typeof value;
   if (value instanceof Promise) return PromiseStackElement;
@@ -48,18 +49,20 @@ const getStackElementClass = value => {
 };
 
 class StackElement {
-  static factory(value) {
+  constructor(value, replacer, space) {
+    this.value = this.parseValue(value);
+    this.replacer = replacer;
+    this.space = space;
+    this._isComplete = false;
+    this.debug(`Created`);
+  }
+
+  static factory(value, replacer, space) {
     if (value && value.toJSON instanceof Function) {
       value = value.toJSON();
     }
     const StackElementClass = getStackElementClass(value);
-    return new StackElementClass(value);
-  }
-
-  constructor(value) {
-    this.value = this.parseValue(value);
-    this._isComplete = false;
-    this.debug(`Created`);
+    return new StackElementClass(value, replacer, space, true);
   }
 
   get isComplete() {
@@ -96,8 +99,8 @@ class StringStackElement extends StackElement {
 }
 
 class EmptyStackElement extends StackElement {
-  constructor() {
-    super();
+  constructor(value, replacer, space) {
+    super(value, replacer, space);
     this.completed();
   }
 }
@@ -119,8 +122,8 @@ class NumberStackElement extends StackElement {
 }
 
 class StreamStackElement extends StackElement {
-  constructor(value) {
-    super(value);
+  constructor(value, replacer, space) {
+    super(value, replacer, space);
     this._error = null;
     this._isEmpty = false;
     this._endState = super.state();
@@ -204,10 +207,12 @@ class StreamStackElement extends StackElement {
 }
 
 class ArrayStreamStackElement extends StreamStackElement {
-  constructor(value) {
-    super(value);
+  constructor(value, replacer, space) {
+    super(value, replacer, space);
     this._first = true;
-    this._firstState = super.state(null, [new StackElement('[')]);
+    this._firstState = super.state(null, [
+      new StackElement('[', this.replacer, this.space),
+    ]);
     this._endState = super.state(']');
     this._secondStateSendt = false;
   }
@@ -226,10 +231,12 @@ class ArrayStreamStackElement extends StreamStackElement {
 }
 
 class StringStreamStackElement extends StreamStackElement {
-  constructor(value) {
-    super(value);
+  constructor(value, replacer, space) {
+    super(value, replacer, space);
     this._first = true;
-    this._firstState = super.state(null, [new StackElement('"')]);
+    this._firstState = super.state(null, [
+      new StackElement('"', this.replacer, this.space),
+    ]);
     this._endState = super.state('"');
   }
 
@@ -246,7 +253,9 @@ class ObjectStreamStackElement extends StreamStackElement {
     if (next === null) {
       return super.state();
     }
-    return super.state(null, [StackElement.factory(next)]);
+    return super.state(null, [
+      StackElement.factory(next, this.replacer, this.space),
+    ]);
   }
 }
 
@@ -254,13 +263,15 @@ class PromiseStackElement extends StackElement {
   async next() {
     this.completed();
     const result = await this.value;
-    return this.state(null, [StackElement.factory(result)]);
+    return this.state(null, [
+      StackElement.factory(result, this.replacer, this.space),
+    ]);
   }
 }
 
 class ArrayStackElement extends StackElement {
-  constructor(value) {
-    super(value);
+  constructor(value, replacer, space) {
+    super(value, replacer, space);
     this._first = true;
   }
 
@@ -272,27 +283,36 @@ class ArrayStackElement extends StackElement {
 
     const nextElements = [];
     this.value.forEach(item => {
-      nextElements.push(StackElement.factory(item));
-      nextElements.push(new StackElement(','));
+      nextElements.push(StackElement.factory(item, this.replacer, this.space));
+      nextElements.push(new StackElement(',', this.replacer, this.space));
     });
     nextElements.pop();
-    nextElements.push(new StackElement(']'));
+    nextElements.push(new StackElement(']', this.replacer, this.space));
     this.completed();
     return this.state(null, nextElements);
   }
 }
 
 class ObjectStackElement extends StackElement {
-  constructor(value) {
-    super(value);
+  constructor(value, replacer, space) {
+    super(value, replacer, space);
     this._first = true;
-    this._entriesLeft = Object.entries(value).filter(([, value]) =>
-      this.shouldValueBeStringified(value),
-    );
+    this._entriesLeft = this.entriesToProcess();
   }
 
   get isEmpty() {
     return !this._entriesLeft.length;
+  }
+
+  entriesToProcess() {
+    let entries = Object.entries(this.value);
+    if (typeof this.replacer === 'function') {
+      entries = entries.map(([key, value]) => [key, this.replacer(key, value)]);
+    }
+    if (Array.isArray(this.replacer)) {
+      entries = entries.filter(([key]) => this.replacer.includes(key));
+    }
+    return entries.filter(([, value]) => this.shouldValueBeStringified(value));
   }
 
   shouldValueBeStringified(value) {
@@ -312,10 +332,12 @@ class ObjectStackElement extends StackElement {
 
     const [key, value] = this._entriesLeft.shift();
     const next = `"${key}": `;
-    const nextElements = [StackElement.factory(value)];
+    const nextElements = [
+      StackElement.factory(value, this.replacer, this.space),
+    ];
 
     if (!this.isEmpty) {
-      nextElements.push(new StackElement(','));
+      nextElements.push(new StackElement(',', this.replacer, this.space));
     }
     return this.state(next, nextElements);
   }

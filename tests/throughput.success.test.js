@@ -9,7 +9,8 @@ describe('Streamier is loaded', () => {
     (name, senario) => {
       let stream;
       beforeAll(() => {
-        stream = new JSONStream(senario.input());
+        const { input, replacer, space } = senario;
+        stream = new JSONStream(input(), replacer, space);
       });
 
       it('should return a Readable stream', () => {
@@ -29,17 +30,14 @@ describe('Streamier is loaded', () => {
       let object;
 
       beforeAll(async done => {
-        const collector = new Collector(senario.input());
+        const { input, replacer, space } = senario;
+        const collector = new Collector(input(), replacer, space);
         object = await collector.toObject();
         done();
       });
 
       it('should return a expected output', () => {
-        if (!senario.expectedResult) {
-          expect(object).toEqual(senario.expectedResult);
-        } else {
-          expect(object).toMatchObject(senario.expectedResult);
-        }
+        expect(object).toEqual(senario.expectedResult);
       });
     },
   );
@@ -50,7 +48,8 @@ describe('Streamier is loaded', () => {
       let jsonString;
 
       beforeAll(async done => {
-        const collector = new Collector(senario.input());
+        const { input, replacer, space } = senario;
+        const collector = new Collector(input(), replacer, space);
         try {
           jsonString = await collector.toJson();
         } catch (error) {
@@ -65,7 +64,7 @@ describe('Streamier is loaded', () => {
             expect(jsonString).toEqual(senario.expectedResult);
           } else {
             const parsedJson = JSON.parse(jsonString);
-            expect(parsedJson).toMatchObject(senario.expectedResult);
+            expect(parsedJson).toEqual(senario.expectedResult);
           }
         } catch (error) {
           error.message = `${error.message} \n ${jsonString}`;

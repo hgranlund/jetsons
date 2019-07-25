@@ -4,8 +4,10 @@ const { Readable } = require('stream');
 const Deque = require('double-ended-queue');
 const { inspect } = require('util');
 class JSONStream extends Readable {
-  constructor(value) {
+  constructor(value, replacer, space) {
     super();
+    this.replacer = replacer;
+    this.space = space;
     this.hasEnded = false;
     this.stack = new Deque(128);
     this.addFirstStackElement(value);
@@ -17,9 +19,13 @@ class JSONStream extends Readable {
       typeof value,
     );
     if (shouldReturnUndefined) {
-      this.stack.push(new StackElement(undefined));
+      this.stack.push(new StackElement(undefined, this.replacer, this.space));
     } else {
-      const stackElement = StackElement.factory(value);
+      const stackElement = StackElement.factory(
+        value,
+        this.replacer,
+        this.space,
+      );
       this.stack.push(stackElement);
     }
   }
