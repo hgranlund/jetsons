@@ -26,6 +26,8 @@
     "jest": "^24.8.0"
   },
   "dependencies": {
-    "double-ended-queue": "^2.1.0-0"
+    "debug": "^4.1.1",
+    "double-ended-queue": "^2.1.0-0",
+    "supports-color": "^7.0.0"
   }
 }

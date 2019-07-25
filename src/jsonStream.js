@@ -1,13 +1,15 @@
+const debug = require('debug')('streamier:JsonStream');
 const { StackElement, jsonTypes } = require('./stackElements');
 const { Readable } = require('stream');
 const Deque = require('double-ended-queue');
-
+const { inspect } = require('util');
 class JSONStream extends Readable {
   constructor(value) {
     super();
     this.hasEnded = false;
     this.stack = new Deque(128);
     this.addFirstStackElement(value);
+    debug(`Created`);
   }
 
   addFirstStackElement(value) {
@@ -37,6 +39,7 @@ class JSONStream extends Readable {
     if (this.isEmpty) {
       this.push(null);
       this.hasEnded = true;
+      debug('Completed');
       return false;
     }
     if (this.hasEnded) {
@@ -68,6 +71,12 @@ class JSONStream extends Readable {
 
   handleError(error) {
     this.error = error;
+    this.error.jsonStreamStack = this.stack.toArray();
+    debug(
+      error,
+      '\nWhile processing stack:',
+      inspect(this.error.jsonStreamStack, { maxArrayLength: 15 }),
+    );
     this.hasEnded = true;
     setImmediate(() => this.emit('error', error));
   }

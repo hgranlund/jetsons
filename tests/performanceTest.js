@@ -1,15 +1,14 @@
 const { createReadStream, readFileSync, writeFileSync } = require('fs');
 const { toJson, fibonacci, devNullStream } = require('./testUtils');
-const streamier = require('../src');
+const { JSONStream } = require('../src');
 const { PerformanceTest } = require('../../performaceTester/src');
-const JsonStreamStringify = require('json-stream-stringify');
-
+// const JsonStreamStringify = require('json-stream-stringify');
 const hugeJson = JSON.parse(readFileSync('tests/data/quotes.json'));
 
 const runJsonStrimifyObject = (obj, useOld = false) => () => {
   const stream = useOld
     ? new JsonStreamStringify(obj())
-    : streamier.toJson(obj());
+    : new JSONStream(obj());
 
   return new Promise((resolve, reject) => {
     stream.on('end', resolve).on('error', reject);
@@ -91,7 +90,7 @@ const performanceTests = tests.map(
 performanceTests
   .reduce(async (lastProm, test) => {
     await lastProm;
-    return test.run(50);
+    return test.run(1);
   }, Promise.resolve())
   .then(() => {
     const results = performanceTests.map(test => test.result());

@@ -1,4 +1,4 @@
-const debug = require('debug')('streamier');
+const debug = require('debug')('streamier:StackElements');
 const { Stream } = require('stream');
 const { quote, escapeString } = require('./utils');
 
@@ -8,7 +8,6 @@ const jsonTypes = {
   array: 'array',
   raw: 'raw',
 };
-
 const getStackElementClass = value => {
   const type = typeof value;
   if (value instanceof Promise) return PromiseStackElement;
@@ -60,7 +59,7 @@ class StackElement {
   constructor(value) {
     this.value = this.parseValue(value);
     this._isComplete = false;
-    debug(`StackElement initilized`);
+    this.debug(`Created`);
   }
 
   get isComplete() {
@@ -68,7 +67,7 @@ class StackElement {
   }
 
   completed() {
-    debug(`StackElement compleded`);
+    this.debug(`Completed`);
     this._isComplete = true;
   }
 
@@ -83,6 +82,10 @@ class StackElement {
   async next() {
     this.completed();
     return this.state(this.value);
+  }
+
+  debug(msg) {
+    debug(`${this.constructor.name}: ${msg}`);
   }
 }
 
@@ -118,18 +121,18 @@ class NumberStackElement extends StackElement {
 class StreamStackElement extends StackElement {
   constructor(value) {
     super(value);
-    this.error = null;
-    this.isEmpty = false;
-    this.endState = super.state();
-    this.firstState = null;
-    this.first = true;
+    this._error = null;
+    this._isEmpty = false;
+    this._endState = super.state();
+    this._firstState = null;
+    this._first = true;
     this.initvValidate();
     value
       .on('end', () => {
         this.hasEnded = true;
       })
       .on('error', error => {
-        this.error = error;
+        this._error = error;
       });
   }
 
@@ -138,11 +141,11 @@ class StreamStackElement extends StackElement {
       this.value._readableState.ended &&
       this.value._readableState.endEmitted
     ) {
-      this.error = new Error(
+      this._error = new Error(
         'Readable Stream has already ended. Unable to process it!',
       );
     } else if (this.value._readableState.flowing) {
-      this.error = new Error(
+      this._error = new Error(
         'ReadabelStream is in flowing mode, data may be lost',
       );
     }
@@ -170,19 +173,19 @@ class StreamStackElement extends StackElement {
 
   async next() {
     this.validateOnNext();
-    if (this.first) {
-      this.first = false;
-      if (this.firstState) {
-        return this.firstState;
+    if (this._first) {
+      this._first = false;
+      if (this._firstState) {
+        return this._firstState;
       }
     }
     const chunck = await this.readWhenReady();
     if (chunck !== null) {
       return this.state(chunck);
     } else if (this.hasEnded) {
-      this.isEmpty = true;
+      this._isEmpty = true;
       this.completed();
-      return this.endState;
+      return this._endState;
     } else {
       return this.next();
     }
@@ -192,10 +195,10 @@ class StreamStackElement extends StackElement {
     if (this.value._readableState.flowing) {
       throw new Error('ReadabelStream is in flowing mode, data may be lost');
     }
-    if (this.error) {
+    if (this._error) {
       this.completed();
       this.hasEnded = true;
-      throw this.error;
+      throw this._error;
     }
   }
 }
@@ -203,18 +206,18 @@ class StreamStackElement extends StackElement {
 class ArrayStreamStackElement extends StreamStackElement {
   constructor(value) {
     super(value);
-    this.first = true;
-    this.firstState = super.state(null, [new StackElement('[')]);
-    this.endState = super.state(']');
-    this.secondStateSendt = false;
+    this._first = true;
+    this._firstState = super.state(null, [new StackElement('[')]);
+    this._endState = super.state(']');
+    this._secondStateSendt = false;
   }
 
   state(next, elements = []) {
     if (!next) {
       return super.state(null, elements);
     }
-    if (!this.secondStateSendt) {
-      this.secondStateSendt = true;
+    if (!this._secondStateSendt) {
+      this._secondStateSendt = true;
       return super.state(escapeString(next.toString()), elements);
     } else {
       return super.state(', ' + escapeString(next.toString()), elements);
@@ -225,9 +228,9 @@ class ArrayStreamStackElement extends StreamStackElement {
 class StringStreamStackElement extends StreamStackElement {
   constructor(value) {
     super(value);
-    this.first = true;
-    this.firstState = super.state(null, [new StackElement('"')]);
-    this.endState = super.state('"');
+    this._first = true;
+    this._firstState = super.state(null, [new StackElement('"')]);
+    this._endState = super.state('"');
   }
 
   state(next, elements = []) {
@@ -258,13 +261,12 @@ class PromiseStackElement extends StackElement {
 class ArrayStackElement extends StackElement {
   constructor(value) {
     super(value);
-    this.first = true;
-    this.type = 'array';
+    this._first = true;
   }
 
   async next() {
-    if (this.first) {
-      this.first = false;
+    if (this._first) {
+      this._first = false;
       return this.state('[');
     }
 
@@ -283,15 +285,14 @@ class ArrayStackElement extends StackElement {
 class ObjectStackElement extends StackElement {
   constructor(value) {
     super(value);
-    this.first = true;
-    this.type = 'object';
-    this.entries = Object.entries(value).filter(([, value]) =>
+    this._first = true;
+    this._entriesLeft = Object.entries(value).filter(([, value]) =>
       this.shouldValueBeStringified(value),
     );
   }
 
   get isEmpty() {
-    return !this.entries.length;
+    return !this._entriesLeft.length;
   }
 
   shouldValueBeStringified(value) {
@@ -300,8 +301,8 @@ class ObjectStackElement extends StackElement {
   }
 
   async next() {
-    if (this.first) {
-      this.first = false;
+    if (this._first) {
+      this._first = false;
       return this.state('{');
     }
     if (this.isEmpty) {
@@ -309,7 +310,7 @@ class ObjectStackElement extends StackElement {
       return this.state('}');
     }
 
-    const [key, value] = this.entries.shift();
+    const [key, value] = this._entriesLeft.shift();
     const next = `"${key}": `;
     const nextElements = [StackElement.factory(value)];
 

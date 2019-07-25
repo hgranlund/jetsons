@@ -141,6 +141,30 @@ app.get('/resource', (req, res, next) => {
 );
 ```
 
+## Development
+
+### Test
+
+Run tests by:
+
+```bash
+npm test
+```
+
+Run performance tests by:
+
+```bash
+npm run perf
+```
+
+### Debug
+
+Streamier uses [debug](https://www.npmjs.com/package/debug). To enable debug logging set environment variable:
+
+```bash
+DEBUG='streamier:*'
+```
+
 ## Support
 
 Submit an [issue](https://github.com/hgranlund/streamier/issues/new)
