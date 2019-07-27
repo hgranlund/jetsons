@@ -75,4 +75,13 @@ describe('Jetson is loaded', () => {
       expect(collector.toObject()).rejects.toEqual(expectedError);
     });
   });
+  describe('And unsupported types are used', () => {
+    it('should throw TypeError if a BigInt in encounterd', () => {
+      const collector = new Collector({ aBigInt: BigInt(42) });
+      const expectedError = new Error(
+        `BigInt value can't be serialized in JSON`,
+      );
+      expect(collector.toJson()).rejects.toEqual(expectedError);
+    });
+  });
 });

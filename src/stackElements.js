@@ -45,6 +45,9 @@ const getStackElementClass = value => {
   if (typeof value === 'object' || value instanceof Object) {
     return ObjectStackElement;
   }
+  if (type === 'bigint') {
+    throw new Error(`BigInt value can't be serialized in JSON`);
+  }
   return StackElement;
 };
 
