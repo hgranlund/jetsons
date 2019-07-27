@@ -77,6 +77,7 @@ describe('Jetson is loaded', () => {
   });
   describe('And unsupported types are used', () => {
     it('should throw TypeError if a BigInt in encounterd', () => {
+      // eslint-disable-next-line no-undef
       const collector = new Collector({ aBigInt: BigInt(42) });
       const expectedError = new Error(
         `BigInt value can't be serialized in JSON`,

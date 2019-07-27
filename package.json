@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
+    "lint": "eslint ./src ./tests --fix",
     "bench": "node tests/benchmark.js",
     "perf": "node tests/performanceTest.js"
   },
@@ -29,5 +30,8 @@
     "debug": "^4.1.1",
     "double-ended-queue": "^2.1.0-0",
     "supports-color": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=8.0.0"
   }
 }
