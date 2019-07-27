@@ -254,6 +254,30 @@ const legalSenarios = [
       aKeyToBeStringified: 'Value we want to see',
     },
   }),
+  senario('a json with json replacer function', {
+    input: () => ({
+      toBeReplaced: 'Original Value',
+    }),
+    replacer: (key, value) => {
+      if (key === '') {
+        return { replacedKey: 123 };
+      }
+      return value;
+    },
+    expectedResult: { replacedKey: 123 },
+  }),
+  senario('a json with string replacer function', {
+    input: () => ({
+      toBeReplaced: 'Original Value',
+    }),
+    replacer: (key, value) => {
+      if (key === '') {
+        return 123;
+      }
+      return value;
+    },
+    expectedResult: 123,
+  }),
 ];
 
 const getTestSenarios = (senarioNum = -1) => {
@@ -267,25 +291,3 @@ const getTestSenarios = (senarioNum = -1) => {
 module.exports = {
   legalSenarios: getTestSenarios(),
 };
-
-// senario('a json with json replacer function', {
-//   input: () => ({
-//     toBeReplaced: 'Original Value',
-//   }),
-//   replacer: (key, value) => { if (key === '') { return { replacedKey: 123 }; }
-//     return value;
-//   },
-//   expectedResult: { replacedKey: 123 },
-// }),
-// senario('a json with string replacer function', {
-//   input: () => ({
-//     toBeReplaced: 'Original Value',
-//   }),
-//   replacer: (key, value) => {
-//     if (key === '') {
-//       return 123;
-//     }
-//     return value;
-//   },
-//   expectedResult: 123,
-// }),

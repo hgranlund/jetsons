@@ -26,6 +26,9 @@ class JSONStream extends Readable {
   }
 
   addFirstStackElement(value) {
+    if (typeof this.replacer === 'function') {
+      value = this.replacer('', value);
+    }
     const shouldReturnUndefined = ['function', 'undefined', 'symbol'].includes(
       typeof value,
     );
