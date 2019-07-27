@@ -1,8 +1,8 @@
 # Jetson
 
-Jetson.JsonStream is a stream that transforms a object, that may include Readable streams or Promises, into a JSON string.
+The Jetson's is a family of Readable Streams that transforms javascript objects onto a serialized output. The object that is being transformed may contion other Readable Streams or Promises. As of now The jetson's if a very small family with only one Stream, JSONStream, but hopefully more is comming.
 
-Optionally replacing values if a replacer function is specified or optionally including only the specified properties if a replacer array is specified.
+The JsonStream is a Readable stream that transforms a object into a JSON string in a JSON.stringify() fashion.
 
 ## Install
 
@@ -37,9 +37,9 @@ A Readable stream that outputs a JSON string representing the given value.
 
 #### Exceptions
 
-Throws a TypeError ("cyclic object value") exception when a circular reference is found.
-
 Throws a TypeError ("BigInt value can't be serialized in JSON") when trying to stringify a BigInt value.
+
+<!-- // TODO: Throws a TypeError ("cyclic object value") exception when a circular reference is found. -->
 
 ### Description
 
@@ -66,6 +66,30 @@ Throws a TypeError ("BigInt value can't be serialized in JSON") when trying to s
 - The numbers **_Infinity_** and **_NaN_**, as well as the value **_null_**, are all considered **_null_**.
 
 - All the other Object instances (including **_Map_**, **_Set_**, **_WeakMap_**, and **_WeakSet_**) will have only their enumerable properties serialized.
+
+#### The replacer parameter
+
+The **_replacer_** parameter can be either a function or an array.
+
+As a function, it takes two parameters: the key and the value being stringified. The object in which the key was found is provided as the replacer's this parameter.
+
+Initially, the **_replacer_** function is called with an empty string as key representing the object being stringified. It is then called for each property on the object or array being stringified.
+
+It should return the value that should be added to the JSON string, as follows:
+
+- If you return a **_Number_**, the string corresponding to that number is used as the value for the property when added to the JSON string.
+- If you return a **_String_**, that string is used as the property's value when adding it to the JSON string.
+- If you return a **_Boolean_**, "true" or "false" is used as the property's value, as appropriate, when adding it to the JSON string.
+- If you return **_null_**, null will be added to the JSON string.
+- If you return any other **_object_**, the object is recursively stringified into the JSON string, calling the replacer function on each property, unless the object is a function, in which case nothing is added to the JSON string.
+- If you return **_undefined_**, the property is not included (i.e., filtered out) in the output JSON string
+
+#### The space argument
+
+The space argument may be used to control spacing in the final string.
+
+- If it is a number, successive levels in the stringification will each be indented by this many space characters (up to 10).
+- If it is a string, successive levels will be indented by this string (or the first ten characters of it).
 
 ## Usage
 
