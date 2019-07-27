@@ -7,11 +7,22 @@ class JSONStream extends Readable {
   constructor(value, replacer, space) {
     super();
     this.replacer = replacer;
-    this.space = space;
+    this.space = this.spaceFunction(space);
     this.hasEnded = false;
     this.stack = new Deque(128);
     this.addFirstStackElement(value);
     debug(`Created`);
+  }
+
+  spaceFunction(space) {
+    if (Number.isInteger(space)) {
+      return depth => `\n${' '.repeat(depth * space)}`;
+    }
+    if (typeof space === 'string') {
+      const newSpace = space.substring(0, 10);
+      return depth => `\n${newSpace.repeat(depth)}`;
+    }
+    return () => '';
   }
 
   addFirstStackElement(value) {

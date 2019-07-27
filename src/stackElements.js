@@ -49,24 +49,46 @@ const getStackElementClass = value => {
 };
 
 class StackElement {
-  constructor(value, replacer, space) {
+  constructor(value, replacer, space, depth) {
     this.value = this.parseValue(value);
     this.replacer = replacer;
-    this.space = space;
+    this._space = space;
     this._isComplete = false;
+    this.depth = depth;
     this.debug(`Created`);
   }
 
-  static factory(value, replacer, space) {
+  static factory(value, replacer, space, depth = 0) {
     if (value && value.toJSON instanceof Function) {
       value = value.toJSON();
     }
     const StackElementClass = getStackElementClass(value);
-    return new StackElementClass(value, replacer, space, true);
+    return new StackElementClass(value, replacer, space, depth);
   }
 
   get isComplete() {
     return this._isComplete;
+  }
+
+  spaceStart(char = '') {
+    return char + this._space(this.depth);
+  }
+
+  spaceEnd(char = '') {
+    return this._space(this.depth) + char;
+  }
+
+  newSpacedElement(char, start = true) {
+    return new StackElement(
+      start ? this.spaceStart(char) : this.spaceEnd(char),
+      this.replacer,
+      this._space,
+      this.depth,
+    );
+  }
+
+  newElement(value, depth = this.depth) {
+    return StackElement.factory(value, this.replacer, this._space, depth);
   }
 
   completed() {
@@ -99,8 +121,8 @@ class StringStackElement extends StackElement {
 }
 
 class EmptyStackElement extends StackElement {
-  constructor(value, replacer, space) {
-    super(value, replacer, space);
+  constructor(value, replacer, space, depth) {
+    super(value, replacer, space, depth);
     this.completed();
   }
 }
@@ -122,14 +144,14 @@ class NumberStackElement extends StackElement {
 }
 
 class StreamStackElement extends StackElement {
-  constructor(value, replacer, space) {
-    super(value, replacer, space);
+  constructor(value, replacer, space, depth) {
+    super(value, replacer, space, depth);
     this._error = null;
     this._isEmpty = false;
     this._endState = super.state();
     this._firstState = null;
     this._first = true;
-    this.initvValidate();
+    this.initValidate();
     value
       .on('end', () => {
         this.hasEnded = true;
@@ -139,7 +161,7 @@ class StreamStackElement extends StackElement {
       });
   }
 
-  initvValidate() {
+  initValidate() {
     if (
       this.value._readableState.ended &&
       this.value._readableState.endEmitted
@@ -207,13 +229,11 @@ class StreamStackElement extends StackElement {
 }
 
 class ArrayStreamStackElement extends StreamStackElement {
-  constructor(value, replacer, space) {
-    super(value, replacer, space);
+  constructor(value, replacer, space, depth) {
+    super(value, replacer, space, depth);
     this._first = true;
-    this._firstState = super.state(null, [
-      new StackElement('[', this.replacer, this.space),
-    ]);
-    this._endState = super.state(']');
+    this._firstState = super.state(null, [this.newSpacedElement('[')]);
+    this._endState = super.state(this.spaceEnd(']'));
     this._secondStateSendt = false;
   }
 
@@ -225,18 +245,19 @@ class ArrayStreamStackElement extends StreamStackElement {
       this._secondStateSendt = true;
       return super.state(escapeString(next.toString()), elements);
     } else {
-      return super.state(', ' + escapeString(next.toString()), elements);
+      return super.state(
+        `,${this.spaceStart()}${escapeString(next.toString())}`,
+        elements,
+      );
     }
   }
 }
 
 class StringStreamStackElement extends StreamStackElement {
-  constructor(value, replacer, space) {
-    super(value, replacer, space);
+  constructor(value, replacer, space, depth) {
+    super(value, replacer, space, depth);
     this._first = true;
-    this._firstState = super.state(null, [
-      new StackElement('"', this.replacer, this.space),
-    ]);
+    this._firstState = super.state(null, [new StackElement('"')]);
     this._endState = super.state('"');
   }
 
@@ -249,13 +270,15 @@ class StringStreamStackElement extends StreamStackElement {
 }
 
 class ObjectStreamStackElement extends StreamStackElement {
+  constructor(...args) {
+    super(...args);
+    this.depth++;
+  }
   state(next) {
     if (next === null) {
       return super.state();
     }
-    return super.state(null, [
-      StackElement.factory(next, this.replacer, this.space),
-    ]);
+    return super.state(null, [this.newElement(next)]);
   }
 }
 
@@ -263,40 +286,42 @@ class PromiseStackElement extends StackElement {
   async next() {
     this.completed();
     const result = await this.value;
-    return this.state(null, [
-      StackElement.factory(result, this.replacer, this.space),
-    ]);
+    return this.state(null, [this.newElement(result)]);
   }
 }
 
 class ArrayStackElement extends StackElement {
-  constructor(value, replacer, space) {
-    super(value, replacer, space);
+  constructor(value, replacer, space, depth) {
+    super(value, replacer, space, depth);
     this._first = true;
+    this.depth++;
   }
 
   async next() {
     if (this._first) {
       this._first = false;
-      return this.state('[');
+      return this.state(this.spaceStart('['));
     }
 
     const nextElements = [];
     this.value.forEach(item => {
-      nextElements.push(StackElement.factory(item, this.replacer, this.space));
-      nextElements.push(new StackElement(',', this.replacer, this.space));
+      nextElements.push(this.newElement(item));
+      nextElements.push(this.newSpacedElement(','));
     });
     nextElements.pop();
-    nextElements.push(new StackElement(']', this.replacer, this.space));
+    this.depth--;
+    // nextElements.push(this.newSpacedElement());
+    nextElements.push(this.newSpacedElement(']', false));
     this.completed();
     return this.state(null, nextElements);
   }
 }
 
 class ObjectStackElement extends StackElement {
-  constructor(value, replacer, space) {
-    super(value, replacer, space);
+  constructor(value, replacer, space, depth) {
+    super(value, replacer, space, depth);
     this._first = true;
+    this.depth++;
     this._entriesLeft = this.entriesToProcess();
   }
 
@@ -323,21 +348,20 @@ class ObjectStackElement extends StackElement {
   async next() {
     if (this._first) {
       this._first = false;
-      return this.state('{');
+      return this.state(this.spaceStart('{'));
     }
     if (this.isEmpty) {
       this.completed();
-      return this.state('}');
+      this.depth--;
+      return this.state(this.spaceEnd('}'));
     }
 
     const [key, value] = this._entriesLeft.shift();
-    const next = `"${key}": `;
-    const nextElements = [
-      StackElement.factory(value, this.replacer, this.space),
-    ];
+    const next = `"${key}":${this.spaceEnd() ? ' ' : ''}`;
+    const nextElements = [this.newElement(value)];
 
     if (!this.isEmpty) {
-      nextElements.push(new StackElement(',', this.replacer, this.space));
+      nextElements.push(this.newSpacedElement(','));
     }
     return this.state(next, nextElements);
   }
