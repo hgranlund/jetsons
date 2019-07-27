@@ -1,4 +1,4 @@
-const intoStream = require('into-stream');
+// const intoStream = require('into-stream');
 const { Readable, Writable } = require('stream');
 const devNullStream = () =>
   Writable({
@@ -7,13 +7,14 @@ const devNullStream = () =>
     },
   });
 
-const toGenericStream = value => {
-  if (value.next instanceof Function) {
-    return Readable.from(value, { objectMode: true });
-  } else if (typeof value === 'string') {
-    return intoStream(value);
+const toGenericStream = valueToBeStream => {
+  if (valueToBeStream.next instanceof Function) {
+    return generatorToStream(valueToBeStream);
+  } else if (typeof valueToBeStream === 'string') {
+    return intoStream(valueToBeStream.split(''), { objectMode: false });
+    // return intoStream(valueToBeStream);
   } else {
-    return intoObjectStream(value);
+    return intoStream(valueToBeStream, { objectMode: true });
   }
 };
 
@@ -23,20 +24,34 @@ const toStream = (value, jsonType) => {
   return stream;
 };
 
-const intoObjectStream = obj => {
+const intoStream = (obj, options) => {
   const values = Array.isArray(obj) ? obj : [obj];
   const stream = new Readable({
-    objectMode: true,
+    ...options,
     read() {
       if (values.length) {
-        this.push(values.pop());
+        setImmediate(() => this.push(values.pop()));
       } else {
-        this.push(null);
+        setImmediate(() => this.push(null));
       }
     },
   });
 
   return stream;
+};
+
+const generatorToStream = valueToBeStream => {
+  return new Readable({
+    objectMode: true,
+    read() {
+      const { value, done } = valueToBeStream.next();
+      if (done) {
+        setImmediate(() => this.push(null));
+      } else {
+        setImmediate(() => this.push(value));
+      }
+    },
+  });
 };
 
 function* fibonacci(from, to, useString = false) {

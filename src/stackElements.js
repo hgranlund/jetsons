@@ -154,6 +154,7 @@ class StreamStackElement extends StackElement {
     this._endState = super.state();
     this._firstState = null;
     this._first = true;
+    this.hasEnded = false;
     this.initValidate();
     value
       .on('end', () => {

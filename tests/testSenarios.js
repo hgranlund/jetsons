@@ -222,10 +222,10 @@ const legalSenarios = [
   }),
   senario('a legal json with Date', {
     input: () => ({
-      nodejsCreated: new Date(2009, 5, 27),
+      nodejsCreated: new Date('2009, 5, 27'),
     }),
     expectedResult: {
-      nodejsCreated: '2009-06-26T22:00:00.000Z',
+      nodejsCreated: new Date('2009, 5, 27').toISOString(),
     },
   }),
   senario('a json with key replacer function', {
@@ -289,5 +289,5 @@ const getTestSenarios = (senarioNum = -1) => {
 };
 
 module.exports = {
-  legalSenarios: getTestSenarios(),
+  legalSenarios: getTestSenarios(24),
 };

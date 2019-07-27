@@ -49,7 +49,7 @@ describe('Jetson is loaded', () => {
     });
 
     it('should return error if stream inside structure is in flowing state before initializatoin', () => {
-      const flowingStream = toStream('value');
+      const flowingStream = toStream('valuesdsaødlkjsadølkjsad');
       flowingStream.pipe(devNullStream());
 
       const collector = new Collector([flowingStream]);
@@ -58,7 +58,7 @@ describe('Jetson is loaded', () => {
     });
 
     it('should return error if stream starts flowing during processing', () => {
-      const flowingStream = toStream('value');
+      const flowingStream = toStream('valuesdsaødlkjsadølkjsad');
       const collector = new Collector(flowingStream);
 
       flowingStream.pipe(devNullStream());
