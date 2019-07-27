@@ -1,5 +1,8 @@
 # Jetson
 
+[![GitHub stars](https://img.shields.io/github/stars/hgranlund/jetson.svg?style=social&label=Stars)](https://github.com/hgranlund/jetson)
+[![Build](https://travis-ci.org/hgranlund/jetson.png)](http://travis-ci.org/hgranlund/jetson)
+
 The Jetson's is a family of Readable Streams that transforms javascript objects onto a serialized output. The object that is being transformed may contion other Readable Streams or Promises. As of now The jetson's if a very small family with only one Stream, JSONStream, but hopefully more is comming.
 
 The JsonStream is a Readable stream that transforms a object into a JSON string in a JSON.stringify() fashion.
