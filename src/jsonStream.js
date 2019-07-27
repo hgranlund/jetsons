@@ -1,9 +1,9 @@
-const debug = require('debug')('jetson:JsonStream');
+const debug = require('debug')('jetsons:JsonStream');
 const { StackElement, jsonTypes } = require('./stackElements');
 const { Readable } = require('stream');
 const Deque = require('double-ended-queue');
 const { inspect } = require('util');
-class JSONStream extends Readable {
+class JsonStream extends Readable {
   constructor(value, replacer, space) {
     super();
     this.replacer = replacer;
@@ -16,7 +16,8 @@ class JSONStream extends Readable {
 
   spaceFunction(space) {
     if (Number.isInteger(space)) {
-      return depth => `\n${' '.repeat(depth * space)}`;
+      const number = space > 10 ? 10 : space;
+      return depth => `\n${' '.repeat(depth * number)}`;
     }
     if (typeof space === 'string') {
       const newSpace = space.substring(0, 10);
@@ -118,6 +119,6 @@ class JSONStream extends Readable {
   }
 }
 
-JSONStream.jsonTypes = jsonTypes;
+JsonStream.jsonTypes = jsonTypes;
 
-module.exports = JSONStream;
+module.exports = JsonStream;

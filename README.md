@@ -1,29 +1,44 @@
-# Jetson
+# The Jetson's
 
-[![GitHub stars](https://img.shields.io/github/stars/hgranlund/jetson.svg?style=social&label=Stars)](https://github.com/hgranlund/jetson)
-[![Build](https://travis-ci.org/hgranlund/jetson.png)](http://travis-ci.org/hgranlund/jetson)
+[![GitHub stars](https://img.shields.io/github/stars/hgranlund/jetsons.svg?style=social&label=Stars)](https://github.com/hgranlund/jetsons)
+[![Build](https://travis-ci.org/hgranlund/jetsons.png)](http://travis-ci.org/hgranlund/jetsons)
 
-The Jetson's is a family of Readable Streams that transforms javascript objects onto a serialized output. The object that is being transformed may contion other Readable Streams or Promises. As of now The jetson's if a very small family with only one Stream, JSONStream, but hopefully more is comming.
+The Jetsons's is a family of Readable Streams that transforms objects onto a serialized output (e.g. JSON). It recursively resolves Promises or Readable streams. As of now, the Jetsons's is a very small family with only one Stream, JsonStream, but hopefully more is comming.
 
-The JsonStream is a Readable stream that transforms a object into a JSON string in a JSON.stringify() fashion.
+The JsonStream is a Readable stream that transforms objects into JSON in a JSON.stringify() fashion.
+
+## Main Features
+
+- Serialize values in a JSON.stringify fashion.
+- Streams can be stringified as different JsonTypes (array, string, raw ).
+- Streams in object mode defaults to JsonType.array.
+- Streams in non-object mode defaults to JsonType.string.
+- Promises are rescursively resolved and emitted as JSON.
+- Destroys all streams if one of them closes .
+- Propagates stream-close and stream errors in a ([pump](https://www.npmjs.com/package/pump)-like) fashion. (Usefull e.g. on aborted requests).
+- High performance.
+- Great memory management.
+- Handling backpressure.
+- Supports JSON.stringify replacer parameter.
+- Supports JSON.stringify space parameter.
 
 ## Install
 
 ```bash
-npm install jetson --save
+npm install jetsons --save
 ```
 
 ## API spesification
 
-### JSONStream
+### JsonStream
 
 ```
-new JSONStream(value[, replacer[, space]])
+new JsonStream(value[, replacer[, space]])
 ```
 
 #### Parameters
 
-- `value:` The value to convert to a JSON string. It my contain
+- `value:` The value to convert to a JSON string.
 
 - `replacer (Optional):`
   A function that alters the behavior of the stringification process, or an array of String and Number objects that serve as a whitelist for selecting/filtering the properties of the value object to be included in the JSON string. If this value is null or not provided, all properties of the object are included in the resulting JSON string.
@@ -42,17 +57,21 @@ A Readable stream that outputs a JSON string representing the given value.
 
 Throws a TypeError ("BigInt value can't be serialized in JSON") when trying to stringify a BigInt value.
 
+Throws a Error ("Readable Stream has already ended. Unable to process it") when trying to process a stream that has allready ended.
+
+Throws a Error ("Readable Stream is in flowing mode, data may be lost") when trying to process a stream that is in a flowing state.
+
 <!-- // TODO: Throws a TypeError ("cyclic object value") exception when a circular reference is found. -->
 
 ### Description
 
-**_JSONStream(value)_** is a Readable stream that outputs the JSON representing **_value_**.
+**_JsonStream_** is a Readable stream that outputs the JSON representing **_value_**.
 
 - If a Readable stream has **_objectMode = true_**, each chunck/object til be stringified as a normal **_value_**.
 
 - If a Readable stream has **_objectMode = false_**, it will be stringified as a string.
 
-- If a Readable stream has a **_jsonType_** property, the resulting stream output with be stringified as that type. Available values are: **_raw_**, **_string_**, **_object_** and **_array_**. the values are available on **_JSONStream.jsonTypes_**.
+- If a Readable stream has a **_jsonType_** property, the resulting stream output with be stringified as that type. Available values are: **_raw_**, **_string_**, **_object_** and **_array_**. the values are available on **_JsonStream.jsonTypes_**.
 
 - If the **_value_** has a **_toJSON()_** method, it's responsible to define what data will be serialized.
 
@@ -60,7 +79,7 @@ Throws a TypeError ("BigInt value can't be serialized in JSON") when trying to s
 
 - If **_undefined_**, a **_Function_**, or a **_Symbol_** is encountered during conversion it is either omitted (when it is found in an **_object_**) or censored to null (when it is found in an array).
 
-- **_JSONStream()_** can also just return **_undefined_** when passing in "pure" values like JSONStream(function(){}) or JSONStream(undefined).
+- **_JsonStream()_** can also just return **_undefined_** when passing in "pure" values like JsonStream(function(){}) or JsonStream(undefined).
 
 - All **_Symbol_**-keyed properties will be completely ignored, even when using the replacer **_function_**.
 
@@ -97,15 +116,15 @@ The space argument may be used to control spacing in the final string.
 ## Usage
 
 ```javascript
-const { JSONStream } = require('jetson');
+const { JsonStream } = require('jetsons');
 
-const jsonStream = new JSONStream({
+const jsonStream = new JsonStream({
   aPromise: Promise.resolve('A resolved text'),
   aStringStream: ReadableStream('A streamed value'),
   aObjectStream: ReadableObjectStream({ streamedObject: true }),
   arr: [1, '2'],
 });
-('');
+
 jsonStream.pipe(process.stdout);
 ```
 
@@ -120,21 +139,21 @@ Output:
 }
 ```
 
-### Streams with different **_jsonType_**`s
+### Streams with different **_jsonType`s_**
 
 ```javascript
-const { JSONStream } = require('jetson');
+const { JsonStream } = require('jetsons');
 
 const arrayStream = Readable.from(fibonacciGenerator(1, 9)):
-arrayStream.jsonType = JSONStream.jsonTypes.array;
+arrayStream.jsonType = JsonStream.jsonTypes.array;
 
 const rawStream = Readable.from(fibonacciStringGenerator(1, 9)):
-rawStream.jsonType = JSONStream.jsonTypes.raw;
+rawStream.jsonType = JsonStream.jsonTypes.raw;
 
 const stringStream = Readable.from(fibonacciGenerator(1, 9)):
-stringStream.jsonType = JSONStream.jsonTypes.string;
+stringStream.jsonType = JsonStream.jsonTypes.string;
 
-const jsonStream = new JSONStream({
+const jsonStream = new JsonStream({
   arrayStream,
   rawStream,
   stringStream
@@ -156,10 +175,10 @@ Output:
 ### Practical example with Express
 
 ```javascript
-const { JSONStream } = require('jetson');
+const { JsonStream } = require('jetsons');
 
 app.get('/resource', (req, res, next) => {
-  const jsonStream = new JSONStream({
+  const jsonStream = new JsonStream({
     aValue: 'We define',
     aExternalHttpRequest: request.get('https://quotes.rest/qod'),
   })
@@ -186,23 +205,23 @@ npm run perf
 
 ### Debug
 
-Jetson uses [debug](https://www.npmjs.com/package/debug). To enable debug logging set environment variable:
+Jetsons uses [debug](https://www.npmjs.com/package/debug). To enable debug logging set environment variable:
 
 ```bash
-DEBUG='jetson:*'
+DEBUG='jetsons:*'
 ```
 
 ## Support
 
-Submit an [issue](https://github.com/hgranlund/jetson/issues/new)
+Submit an [issue](https://github.com/hgranlund/jetsons/issues/new)
 
 ## Contribute
 
-[Contribute](https://github.com/hgranlund/jetson/blob/master/CONTRIBUTING.md) usage docs
+[Contribute](https://github.com/hgranlund/jetsons/blob/master/CONTRIBUTING.md) usage docs
 
 ## License
 
-[MIT License](https://github.com/hgranlund/jetson/blob/master/LICENSE)
+[MIT License](https://github.com/hgranlund/jetsons/blob/master/LICENSE)
 
 [Simen Haugerud Granlund](https://hgranlund.com) © 2019
 

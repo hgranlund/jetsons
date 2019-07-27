@@ -1,5 +1,5 @@
 const { toStream, fibonacci } = require('./testUtils');
-const { JSONStream } = require('../src');
+const { JsonStream } = require('../src');
 
 const senario = (name, { input, replacer, expectedResult }) => {
   return [name, { input: () => input(), replacer, expectedResult }];
@@ -157,7 +157,7 @@ const legalSenarios = [
   }),
   senario('a legal json with raw stream', {
     input: () => ({
-      aKeyWithStream: toStream('"aValue"', JSONStream.jsonTypes.raw),
+      aKeyWithStream: toStream('"aValue"', JsonStream.jsonTypes.raw),
     }),
     expectedResult: {
       aKeyWithStream: 'aValue',
@@ -173,7 +173,7 @@ const legalSenarios = [
   }),
   senario('a legal json with fibonacci as string stream', {
     input: () => ({
-      aFibonacciStream: toStream(fibonacci(1, 9), JSONStream.jsonTypes.string),
+      aFibonacciStream: toStream(fibonacci(1, 9), JsonStream.jsonTypes.string),
     }),
     expectedResult: {
       aFibonacciStream: '1123581321',
@@ -181,7 +181,7 @@ const legalSenarios = [
   }),
   senario('a legal json with fibonacci as object stream', {
     input: () => ({
-      aFibonacciStream: toStream(fibonacci(1, 9), JSONStream.jsonTypes.obejct),
+      aFibonacciStream: toStream(fibonacci(1, 9), JsonStream.jsonTypes.obejct),
     }),
     expectedResult: {
       aFibonacciStream: 1123581321,
@@ -189,7 +189,7 @@ const legalSenarios = [
   }),
   senario('a legal json with fibonacci as array stream', {
     input: () => ({
-      aFibonacciStream: toStream(fibonacci(1, 9), JSONStream.jsonTypes.array),
+      aFibonacciStream: toStream(fibonacci(1, 9), JsonStream.jsonTypes.array),
     }),
     expectedResult: {
       aFibonacciStream: [1, 1, 2, 3, 5, 8, 13, 21],
@@ -199,7 +199,7 @@ const legalSenarios = [
     input: () => ({
       aFibonacciStream: toStream(
         fibonacci(1, 9, true),
-        JSONStream.jsonTypes.raw,
+        JsonStream.jsonTypes.raw,
       ),
     }),
     expectedResult: {
@@ -289,5 +289,5 @@ const getTestSenarios = (senarioNum = -1) => {
 };
 
 module.exports = {
-  legalSenarios: getTestSenarios(24),
+  legalSenarios: getTestSenarios(),
 };

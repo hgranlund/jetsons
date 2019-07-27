@@ -1,16 +1,16 @@
 require('jest-extended');
 const { Readable } = require('stream');
 const { legalSenarios } = require('./testSenarios');
-const { JSONStream, Collector } = require('../src');
+const { JsonStream, Collector } = require('../src');
 
-describe('Jetson is loaded', () => {
+describe('Jetsons is loaded', () => {
   describe.each(legalSenarios)(
     'and toJson on senario[%#]: %s',
     (name, senario) => {
       let stream;
       beforeAll(() => {
         const { input, replacer, space } = senario;
-        stream = new JSONStream(input(), replacer, space);
+        stream = new JsonStream(input(), replacer, space);
       });
 
       it('should return a Readable stream', () => {

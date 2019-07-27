@@ -4,7 +4,7 @@ const { Collector } = require('../src');
 process.on('unhandledRejection', error => {
   console.error(error);
 });
-describe('Jetson is loaded', () => {
+describe('Jetsons is loaded', () => {
   describe('And if stream has ended', () => {
     let endedStream = toStream('value');
 
@@ -36,7 +36,7 @@ describe('Jetson is loaded', () => {
 
   describe('And someone else is processing the stream', () => {
     const expectedError = new Error(
-      'ReadabelStream is in flowing mode, data may be lost',
+      'Readable Stream is in flowing mode, data may be lost',
     );
 
     it('should return error if stream is in flowing state before initializatoin', () => {

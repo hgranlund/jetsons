@@ -1,8 +1,8 @@
 {
-  "name": "jetson",
-  "version": "1.0.0",
+  "name": "jetsons",
+  "version": "0.0.1",
   "description": "Stringifies objects as a Readable stream in a JSON.stringify fashion",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "jest",
     "lint": "eslint ./src ./tests --fix",
@@ -13,25 +13,38 @@
     "stream",
     "streaming",
     "json",
+    "stringify",
     "streamify",
     "readable"
   ],
-  "author": "Simen Haugerud Granlund",
-  "license": "ISC",
+  "homepage": "https://github.com/hgranlund/jetsons",
+  "bugs": {
+    "url": "https://github.com/hgranlund/jetsons/issues",
+    "email": "simen@hgranlund.com"
+  },
+  "license": "MIT",
+  "author": "Simen Haugerud Granlund <simen@hgranlund.com> (https://hgranlund.com)",
+  "files": [
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hgranlund/jetsons.git"
+  },
   "devDependencies": {
     "@types/jest": "^24.0.15",
     "eslint": "^6.0.1",
-    "into-stream": "^5.1.0",
     "jest-extended": "^0.11.2",
-    "benchmark": "^2.1.4",
     "jest": "^24.8.0"
   },
   "dependencies": {
     "debug": "^4.1.1",
-    "double-ended-queue": "^2.1.0-0",
-    "supports-color": "^7.0.0"
+    "double-ended-queue": "^2.1.0-0"
   },
   "engines": {
     "node": ">=10.0.0"
+  },
+  "directories": {
+    "test": "tests"
   }
 }

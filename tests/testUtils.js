@@ -30,7 +30,7 @@ const intoStream = (obj, options) => {
     ...options,
     read() {
       if (values.length) {
-        setImmediate(() => this.push(values.pop()));
+        setImmediate(() => this.push(values.shift()));
       } else {
         setImmediate(() => this.push(null));
       }

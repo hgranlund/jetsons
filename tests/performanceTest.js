@@ -1,12 +1,12 @@
 const { createReadStream, readFileSync, writeFileSync } = require('fs');
 const { devNullStream } = require('./testUtils');
-const { JSONStream } = require('../src');
+const { JsonStream } = require('../src');
 const { PerformanceTest } = require('../../performaceTester/src');
 const hugeJson = JSON.parse(readFileSync('tests/data/quotes.json'));
 
 const runJsonStrimifyObject = obj => () => {
   return new Promise((resolve, reject) => {
-    const stream = new JSONStream(obj());
+    const stream = new JsonStream(obj());
     stream.on('end', resolve).on('error', reject);
     stream.pipe(devNullStream());
   });

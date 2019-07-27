@@ -1,4 +1,4 @@
-const debug = require('debug')('jetson:StackElements');
+const debug = require('debug')('jetsons:StackElements');
 const { Stream } = require('stream');
 const { quote, escapeString } = require('./utils');
 
@@ -175,7 +175,7 @@ class StreamStackElement extends StackElement {
       );
     } else if (this.value._readableState.flowing) {
       this._error = new Error(
-        'ReadabelStream is in flowing mode, data may be lost',
+        'Readable Stream is in flowing mode, data may be lost',
       );
     }
   }
@@ -222,7 +222,7 @@ class StreamStackElement extends StackElement {
 
   validateOnNext() {
     if (this.value._readableState.flowing) {
-      throw new Error('ReadabelStream is in flowing mode, data may be lost');
+      throw new Error('Readable Stream is in flowing mode, data may be lost');
     }
     if (this._error) {
       this.completed();
