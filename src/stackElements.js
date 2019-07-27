@@ -1,4 +1,4 @@
-const debug = require('debug')('streamier:StackElements');
+const debug = require('debug')('jetson:StackElements');
 const { Stream } = require('stream');
 const { quote, escapeString } = require('./utils');
 

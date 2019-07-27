@@ -1,13 +1,13 @@
-# Streamier
+# Jetson
 
-Streamier.JsonStream is a stream that transforms a object, that may include Readable streams or Promises, into a JSON string.
+Jetson.JsonStream is a stream that transforms a object, that may include Readable streams or Promises, into a JSON string.
 
 Optionally replacing values if a replacer function is specified or optionally including only the specified properties if a replacer array is specified.
 
 ## Install
 
 ```bash
-npm install streamier --save
+npm install jetson --save
 ```
 
 ## API spesification
@@ -70,7 +70,7 @@ Throws a TypeError ("BigInt value can't be serialized in JSON") when trying to s
 ## Usage
 
 ```javascript
-const { JSONStream } = require('streamier');
+const { JSONStream } = require('jetson');
 
 const jsonStream = new JSONStream({
   aPromise: Promise.resolve('A resolved text'),
@@ -96,7 +96,7 @@ Output:
 ### Streams with different **_jsonType_**`s
 
 ```javascript
-const { JSONStream } = require('streamier');
+const { JSONStream } = require('jetson');
 
 const arrayStream = Readable.from(fibonacciGenerator(1, 9)):
 arrayStream.jsonType = JSONStream.jsonTypes.array;
@@ -129,7 +129,7 @@ Output:
 ### Practical example with Express
 
 ```javascript
-const { JSONStream } = require('streamier');
+const { JSONStream } = require('jetson');
 
 app.get('/resource', (req, res, next) => {
   const jsonStream = new JSONStream({
@@ -159,23 +159,23 @@ npm run perf
 
 ### Debug
 
-Streamier uses [debug](https://www.npmjs.com/package/debug). To enable debug logging set environment variable:
+Jetson uses [debug](https://www.npmjs.com/package/debug). To enable debug logging set environment variable:
 
 ```bash
-DEBUG='streamier:*'
+DEBUG='jetson:*'
 ```
 
 ## Support
 
-Submit an [issue](https://github.com/hgranlund/streamier/issues/new)
+Submit an [issue](https://github.com/hgranlund/jetson/issues/new)
 
 ## Contribute
 
-[Contribute](https://github.com/hgranlund/streamier/blob/master/CONTRIBUTING.md) usage docs
+[Contribute](https://github.com/hgranlund/jetson/blob/master/CONTRIBUTING.md) usage docs
 
 ## License
 
-[MIT License](https://github.com/hgranlund/streamier/blob/master/LICENSE)
+[MIT License](https://github.com/hgranlund/jetson/blob/master/LICENSE)
 
 [Simen Haugerud Granlund](https://hgranlund.com) © 2019
 

@@ -4,7 +4,7 @@ const { Collector } = require('../src');
 process.on('unhandledRejection', error => {
   console.error(error);
 });
-describe('Streamier is loaded', () => {
+describe('Jetson is loaded', () => {
   describe('And if stream has ended', () => {
     let endedStream = toStream('value');
 

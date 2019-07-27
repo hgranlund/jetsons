@@ -3,7 +3,7 @@ const { Readable } = require('stream');
 const { legalSenarios } = require('./testSenarios');
 const { JSONStream, Collector } = require('../src');
 
-describe('Streamier is loaded', () => {
+describe('Jetson is loaded', () => {
   describe.each(legalSenarios)(
     'and toJson on senario[%#]: %s',
     (name, senario) => {

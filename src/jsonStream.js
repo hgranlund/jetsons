@@ -1,4 +1,4 @@
-const debug = require('debug')('streamier:JsonStream');
+const debug = require('debug')('jetson:JsonStream');
 const { StackElement, jsonTypes } = require('./stackElements');
 const { Readable } = require('stream');
 const Deque = require('double-ended-queue');
