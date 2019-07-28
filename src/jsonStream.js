@@ -104,8 +104,7 @@ class JsonStream extends Readable {
       this.stack.shift();
     }
     if (elements.length) {
-      elements.reverse().forEach(elm => this.stack.unshift(elm));
-      // this.stack.unshift(...elements);
+      this.stack.unshift(...elements);
     }
     if (next !== null) {
       return this.push(next);

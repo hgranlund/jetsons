@@ -44,4 +44,12 @@ const endStream = stream => {
   if (isFn(stream.destroy)) return stream.destroy();
 };
 
-module.exports = { quote, escapeString, endStream };
+const chunkArray = (aArray, size) => {
+  return Array(Math.ceil(aArray.length / size))
+    .fill()
+    .map((_, i) => {
+      return aArray.slice(i * size, i * size + size);
+    });
+};
+
+module.exports = { quote, escapeString, endStream, chunkArray };

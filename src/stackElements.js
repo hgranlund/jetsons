@@ -1,6 +1,6 @@
 const debug = require('debug')('jetsons:StackElements');
 const { Stream } = require('stream');
-const { quote, escapeString, endStream } = require('./utils');
+const { quote, escapeString, endStream, chunkArray } = require('./utils');
 
 const jsonTypes = {
   string: 'string',
@@ -16,8 +16,8 @@ const getStackElementClass = value => {
   if (type === 'number') return NumberStackElement;
   if (type === 'string') return StringStackElement;
   if (type === 'boolean') return PrimitiveStackElement;
-  if (type === 'undefined') return PrimitiveStackElement;
-  if (value === null) return PrimitiveStackElement;
+  if (type === 'undefined') return NullStackElement;
+  if (value === null) return NullStackElement;
   if (value instanceof Stream) {
     if (value.jsonType) {
       switch (value.jsonType) {
@@ -129,6 +129,11 @@ class EmptyStackElement extends StackElement {
 class PrimitiveStackElement extends StackElement {
   parseValue(value) {
     return String(value);
+  }
+}
+class NullStackElement extends PrimitiveStackElement {
+  constructor(value, replacer, space, depth) {
+    super(null, replacer, space, depth);
   }
 }
 
@@ -305,6 +310,7 @@ class ArrayStackElement extends StackElement {
   constructor(value, replacer, space, depth) {
     super(value, replacer, space, depth);
     this._first = true;
+    this.atIndex = 0;
     this.depth++;
   }
 
@@ -315,15 +321,25 @@ class ArrayStackElement extends StackElement {
     }
 
     const nextElements = [];
-    this.value.forEach(item => {
-      nextElements.push(this.newElement(item));
-      nextElements.push(this.newSpacedElement(','));
-    });
-    nextElements.pop();
-    this.depth--;
-    // nextElements.push(this.newSpacedElement());
-    nextElements.push(this.newSpacedElement(']', false));
-    this.completed();
+    if (this.value.length - 1 > this.atIndex) {
+      const to = Math.min(this.value.length - 1, this.atIndex + 5000);
+      while (this.atIndex < to) {
+        nextElements.push(this.newElement(this.value[this.atIndex]));
+        nextElements.push(this.newSpacedElement(','));
+        this.atIndex++;
+      }
+    }
+
+    if (this.value.length - 1 === this.atIndex) {
+      nextElements.push(this.newElement(this.value[this.atIndex]));
+      this.atIndex++;
+    }
+
+    if (this.value.length === this.atIndex) {
+      this.depth--;
+      nextElements.push(this.newSpacedElement(']', false));
+      this.completed();
+    }
     return this.state(null, nextElements);
   }
 }
