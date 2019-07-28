@@ -168,7 +168,7 @@ const legalSenarios = [
       aKeyWithStream: toStream({ streamed: 'value' }),
     }),
     expectedResult: {
-      aKeyWithStream: { streamed: 'value' },
+      aKeyWithStream: [{ streamed: 'value' }],
     },
   }),
   senario('a legal json with fibonacci as string stream', {
@@ -177,14 +177,6 @@ const legalSenarios = [
     }),
     expectedResult: {
       aFibonacciStream: '1123581321',
-    },
-  }),
-  senario('a legal json with fibonacci as object stream', {
-    input: () => ({
-      aFibonacciStream: toStream(fibonacci(1, 9), JsonStream.jsonTypes.obejct),
-    }),
-    expectedResult: {
-      aFibonacciStream: 1123581321,
     },
   }),
   senario('a legal json with fibonacci as array stream', {

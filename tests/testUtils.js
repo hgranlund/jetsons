@@ -1,5 +1,5 @@
-// const intoStream = require('into-stream');
 const { Readable, Writable } = require('stream');
+
 const devNullStream = () =>
   Writable({
     write(chunk, encoding, done) {
@@ -7,12 +7,13 @@ const devNullStream = () =>
     },
   });
 
-const toGenericStream = valueToBeStream => {
+const toGenericStream = (valueToBeStream, options = {}) => {
   if (valueToBeStream.next instanceof Function) {
-    return generatorToStream(valueToBeStream);
+    return generatorToStream(valueToBeStream, { objectMode: true, ...options });
+  } else if (valueToBeStream instanceof Promise) {
+    return promiseToStream(valueToBeStream, options);
   } else if (typeof valueToBeStream === 'string') {
     return intoStream(valueToBeStream.split(''), { objectMode: false });
-    // return intoStream(valueToBeStream);
   } else {
     return intoStream(valueToBeStream, { objectMode: true });
   }
@@ -40,9 +41,9 @@ const intoStream = (obj, options) => {
   return stream;
 };
 
-const generatorToStream = valueToBeStream => {
+const generatorToStream = (valueToBeStream, options) => {
   return new Readable({
-    objectMode: true,
+    ...options,
     read() {
       const { value, done } = valueToBeStream.next();
       if (done) {
@@ -50,6 +51,23 @@ const generatorToStream = valueToBeStream => {
       } else {
         setImmediate(() => this.push(value));
       }
+    },
+  });
+};
+
+const promiseToStream = (valueToBeStream, options) => {
+  let called = false;
+  return new Readable({
+    ...options,
+    read() {
+      if (!called) {
+        called = true;
+        valueToBeStream.then(value => {
+          this.push(value);
+          setImmediate(() => this.push(null));
+        });
+      }
+      return null;
     },
   });
 };

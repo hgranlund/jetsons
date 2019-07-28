@@ -2,6 +2,7 @@ require('jest-extended');
 const { Readable } = require('stream');
 const { legalSenarios } = require('./testSenarios');
 const { JsonStream, Collector } = require('../src');
+const { toStream, devNullStream } = require('./testUtils');
 
 describe('Jetsons is loaded', () => {
   describe.each(legalSenarios)(
@@ -103,6 +104,31 @@ describe('Jetsons is loaded', () => {
       const json = await new Collector(testJson, null, 5).toJson();
       const expectedJson = JSON.stringify(testJson, null, 5);
       expect(json).toEqual(expectedJson);
+    });
+  });
+
+  describe('And JsonStream is aborted/closed', () => {
+    it('should propagate close to streams on stack', done => {
+      let output = '';
+      const streamToBeEnded = toStream(
+        new Promise(resolve => {
+          setTimeout(() => {
+            resolve('Returned after 2s');
+          }, 500);
+        }),
+      ).on('close', () => {
+        expect(output).not.toContain('Returned after 2s');
+        done();
+      });
+      const jsonStream = new JsonStream([streamToBeEnded]);
+      jsonStream
+        .on('data', data => {
+          output += data.toString();
+        })
+        .pipe(devNullStream());
+      setTimeout(() => {
+        jsonStream.destroy();
+      }, 100);
     });
   });
 });

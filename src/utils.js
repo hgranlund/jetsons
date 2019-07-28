@@ -30,4 +30,18 @@ const escapeString = string =>
 
 const quote = string => `"${escapeString(string)}"`;
 
-module.exports = { quote, escapeString };
+const isFn = function(fn) {
+  return typeof fn === 'function';
+};
+
+const isRequest = function(stream) {
+  return stream.setHeader && typeof stream.abort === 'function';
+};
+
+const endStream = stream => {
+  if (isRequest(stream)) return stream.abort();
+  if (isFn(stream.end)) return stream.end();
+  if (isFn(stream.destroy)) return stream.destroy();
+};
+
+module.exports = { quote, escapeString, endStream };

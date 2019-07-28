@@ -15,7 +15,9 @@
     "json",
     "stringify",
     "streamify",
-    "readable"
+    "readable",
+    "fast",
+    "performance"
   ],
   "homepage": "https://github.com/hgranlund/jetsons",
   "bugs": {

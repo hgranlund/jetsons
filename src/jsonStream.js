@@ -1,8 +1,13 @@
 const debug = require('debug')('jetsons:JsonStream');
-const { StackElement, jsonTypes } = require('./stackElements');
+const {
+  StackElement,
+  StreamStackElement,
+  jsonTypes,
+} = require('./stackElements');
 const { Readable } = require('stream');
 const Deque = require('double-ended-queue');
 const { inspect } = require('util');
+
 class JsonStream extends Readable {
   constructor(value, replacer, space) {
     super();
@@ -11,6 +16,7 @@ class JsonStream extends Readable {
     this.hasEnded = false;
     this.stack = new Deque(128);
     this.addFirstStackElement(value);
+    this.on('close', () => this.onClose());
     debug(`Created`);
   }
 
@@ -90,18 +96,6 @@ class JsonStream extends Readable {
     }
   }
 
-  handleError(error) {
-    this.error = error;
-    this.error.jsonStreamStack = this.stack.toArray();
-    debug(
-      error,
-      '\nWhile processing stack:',
-      inspect(this.error.jsonStreamStack, { maxArrayLength: 15 }),
-    );
-    this.hasEnded = true;
-    setImmediate(() => this.emit('error', error));
-  }
-
   async processTopStackElement() {
     if (this.isEmpty) return false;
     const element = this.peekStack;
@@ -116,6 +110,25 @@ class JsonStream extends Readable {
       return this.push(next);
     }
     return true;
+  }
+  handleError(error) {
+    this.error = error;
+    this.error.jsonStreamStack = this.stack.toArray();
+    debug(
+      error,
+      '\nWhile processing stack:',
+      inspect(this.error.jsonStreamStack, { maxArrayLength: 15 }),
+    );
+    this.hasEnded = true;
+    setImmediate(() => this.emit('error', error));
+  }
+
+  onClose() {
+    debug('JsonStream closed');
+    this.stack
+      .toArray()
+      .filter(item => item instanceof StreamStackElement)
+      .forEach(item => item.end());
   }
 }
 

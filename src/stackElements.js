@@ -1,10 +1,9 @@
 const debug = require('debug')('jetsons:StackElements');
 const { Stream } = require('stream');
-const { quote, escapeString } = require('./utils');
+const { quote, escapeString, endStream } = require('./utils');
 
 const jsonTypes = {
   string: 'string',
-  object: 'object',
   array: 'array',
   raw: 'raw',
 };
@@ -23,26 +22,27 @@ const getStackElementClass = value => {
     if (value.jsonType) {
       switch (value.jsonType) {
         case jsonTypes.array:
-          return ArrayStreamStackElement;
+          if (value._readableState.objectMode) {
+            return ArrayObjectStreamStackElement;
+          } else {
+            return ArrayStreamStackElement;
+          }
         case jsonTypes.raw:
           return StreamStackElement;
         case jsonTypes.string:
           return StringStreamStackElement;
-        case jsonTypes.object:
-          return ObjectStreamStackElement;
         default:
           break;
       }
-      return StreamStackElement;
     } else if (value._readableState.objectMode) {
-      return ObjectStreamStackElement;
+      return ArrayObjectStreamStackElement;
     } else {
       return StringStreamStackElement;
     }
   }
   if (Array.isArray(value)) return ArrayStackElement;
   if (typeof value.then === 'function') return PromiseStackElement;
-  if (typeof value === 'object' || value instanceof Object) {
+  if (type === 'object' || value instanceof Object) {
     return ObjectStackElement;
   }
   if (type === 'bigint') {
@@ -230,6 +230,12 @@ class StreamStackElement extends StackElement {
       throw this._error;
     }
   }
+  end() {
+    if (!this.hasEnded) {
+      this.debug('Closing stream');
+      endStream(this.value);
+    }
+  }
 }
 
 class ArrayStreamStackElement extends StreamStackElement {
@@ -239,6 +245,7 @@ class ArrayStreamStackElement extends StreamStackElement {
     this._firstState = super.state(null, [this.newSpacedElement('[')]);
     this._endState = super.state(this.spaceEnd(']'));
     this._secondStateSendt = false;
+    this.depth++;
   }
 
   state(next, elements = []) {
@@ -273,16 +280,20 @@ class StringStreamStackElement extends StreamStackElement {
   }
 }
 
-class ObjectStreamStackElement extends StreamStackElement {
-  constructor(...args) {
-    super(...args);
-    this.depth++;
-  }
-  state(next) {
-    if (next === null) {
-      return super.state();
+class ArrayObjectStreamStackElement extends ArrayStreamStackElement {
+  state(next, elements = []) {
+    if (!next) {
+      return super.state(null, elements);
     }
-    return super.state(null, [this.newElement(next)]);
+    if (this._secondStateSendt) {
+      return super.state(null, [
+        this.newSpacedElement(','),
+        this.newElement(next),
+      ]);
+    } else {
+      this._secondStateSendt = true;
+      return super.state(null, [this.newElement(next)]);
+    }
   }
 }
 
@@ -371,4 +382,4 @@ class ObjectStackElement extends StackElement {
   }
 }
 
-module.exports = { StackElement, EmptyStackElement, jsonTypes };
+module.exports = { StackElement, StreamStackElement, jsonTypes };
