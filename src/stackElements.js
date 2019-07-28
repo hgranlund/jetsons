@@ -53,12 +53,12 @@ const getStackElementClass = value => {
 
 class StackElement {
   constructor(value, replacer, space, depth) {
-    this.value = this.parseValue(value);
     this.replacer = replacer;
     this._space = space;
     this._isComplete = false;
+    this.value = this.parseValue(value);
     this.depth = depth;
-    this.debug(`Created`);
+    this.debug('Created');
   }
 
   static factory(value, replacer, space, depth = 0) {
@@ -67,10 +67,6 @@ class StackElement {
     }
     const StackElementClass = getStackElementClass(value);
     return new StackElementClass(value, replacer, space, depth);
-  }
-
-  get isComplete() {
-    return this._isComplete;
   }
 
   spaceStart(char = '') {
@@ -95,7 +91,7 @@ class StackElement {
   }
 
   completed() {
-    this.debug(`Completed`);
+    this.debug('Completed');
     this._isComplete = true;
   }
 
@@ -104,7 +100,7 @@ class StackElement {
   }
 
   state(next, elements = []) {
-    return { next, elements };
+    return { next, elements, done: this._isComplete };
   }
 
   async next() {
@@ -214,7 +210,7 @@ class StreamStackElement extends StackElement {
     } else if (this.hasEnded) {
       this._isEmpty = true;
       this.completed();
-      return this._endState;
+      return { ...this._endState, done: true };
     } else {
       return this.next();
     }
@@ -257,7 +253,7 @@ class ArrayStreamStackElement extends StreamStackElement {
       return super.state(escapeString(next.toString()), elements);
     } else {
       return super.state(
-        `,${this.spaceStart()}${escapeString(next.toString())}`,
+        `${this.spaceStart(',')}${escapeString(next.toString())}`,
         elements,
       );
     }
@@ -337,15 +333,14 @@ class ObjectStackElement extends StackElement {
     super(value, replacer, space, depth);
     this._first = true;
     this.depth++;
-    this._entriesLeft = this.entriesToProcess();
   }
 
   get isEmpty() {
-    return !this._entriesLeft.length;
+    return !this.value.length;
   }
 
-  entriesToProcess() {
-    let entries = Object.entries(this.value);
+  parseValue(value) {
+    let entries = Object.entries(value);
     if (typeof this.replacer === 'function') {
       entries = entries.map(([key, value]) => [key, this.replacer(key, value)]);
     }
@@ -371,7 +366,7 @@ class ObjectStackElement extends StackElement {
       return this.state(this.spaceEnd('}'));
     }
 
-    const [key, value] = this._entriesLeft.shift();
+    const [key, value] = this.value.shift();
     const next = `"${key}":${this.spaceEnd() ? ' ' : ''}`;
     const nextElements = [this.newElement(value)];
 

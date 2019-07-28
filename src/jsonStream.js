@@ -99,12 +99,13 @@ class JsonStream extends Readable {
   async processTopStackElement() {
     if (this.isEmpty) return false;
     const element = this.peekStack;
-    const { next, elements = [] } = await element.next();
-    if (element.isComplete) {
+    const { next, elements, done } = await element.next();
+    if (done) {
       this.stack.shift();
     }
     if (elements.length) {
       elements.reverse().forEach(elm => this.stack.unshift(elm));
+      // this.stack.unshift(...elements);
     }
     if (next !== null) {
       return this.push(next);
