@@ -1,6 +1,6 @@
 const debug = require('debug')('jetsons:StackElements');
 const { Stream } = require('stream');
-const { quote, escapeString, endStream, chunkArray } = require('./utils');
+const { quote, escapeString, endStream } = require('./utils');
 
 const jsonTypes = {
   string: 'string',
@@ -152,8 +152,6 @@ class StreamStackElement extends StackElement {
     super(value, replacer, space, depth);
     this._error = null;
     this._isEmpty = false;
-    this._endState = super.state();
-    this._firstState = null;
     this._first = true;
     this.hasEnded = false;
     this.initValidate();
@@ -164,6 +162,14 @@ class StreamStackElement extends StackElement {
       .on('error', error => {
         this._error = error;
       });
+  }
+
+  endState() {
+    return super.state();
+  }
+
+  firstState() {
+    return null;
   }
 
   initValidate() {
@@ -205,8 +211,8 @@ class StreamStackElement extends StackElement {
     this.validateOnNext();
     if (this._first) {
       this._first = false;
-      if (this._firstState) {
-        return this._firstState;
+      if (this.firstState()) {
+        return this.firstState();
       }
     }
     const chunck = await this.readWhenReady();
@@ -215,7 +221,7 @@ class StreamStackElement extends StackElement {
     } else if (this.hasEnded) {
       this._isEmpty = true;
       this.completed();
-      return { ...this._endState, done: true };
+      return this.endState();
     } else {
       return this.next();
     }
@@ -231,6 +237,7 @@ class StreamStackElement extends StackElement {
       throw this._error;
     }
   }
+
   end() {
     if (!this.hasEnded) {
       this.debug('Closing stream');
@@ -243,10 +250,17 @@ class ArrayStreamStackElement extends StreamStackElement {
   constructor(value, replacer, space, depth) {
     super(value, replacer, space, depth);
     this._first = true;
-    this._firstState = super.state(null, [this.newSpacedElement('[')]);
-    this._endState = super.state(this.spaceEnd(']'));
     this._secondStateSendt = false;
     this.depth++;
+  }
+
+  endState() {
+    this.depth--;
+    return super.state(this.spaceEnd(']'));
+  }
+
+  firstState() {
+    return super.state(null, [this.newSpacedElement('[')]);
   }
 
   state(next, elements = []) {
@@ -269,8 +283,14 @@ class StringStreamStackElement extends StreamStackElement {
   constructor(value, replacer, space, depth) {
     super(value, replacer, space, depth);
     this._first = true;
-    this._firstState = super.state(null, [new StackElement('"')]);
-    this._endState = super.state('"');
+  }
+
+  endState() {
+    return super.state('"');
+  }
+
+  firstState() {
+    return super.state(null, [new StackElement('"')]);
   }
 
   state(next, elements = []) {
