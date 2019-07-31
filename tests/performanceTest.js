@@ -35,14 +35,18 @@ const jsonWith4MBStringStream = toPerformanceTest(
 
 const hugeJsonTest = toPerformanceTest(() => hugeJson, 'hugeJson');
 
-const ha = Array.from(Array.from(new Array(100000)));
-const hugeArrayTest = toPerformanceTest(() => ha, 'hugeArray');
+const ha100k = Array.from(Array.from(new Array(100000)));
+const hugeArray100kTest = toPerformanceTest(() => ha100k, 'hugeArray100k');
+
+const ha10k = Array.from(Array.from(new Array(10000)));
+const hugeArray10kTest = toPerformanceTest(() => ha10k, 'hugeArray10k');
 
 const tests = [
   simpleJsonTest,
   jsonWith4MBStringStream,
   hugeJsonTest,
-  hugeArrayTest,
+  hugeArray10kTest,
+  hugeArray100kTest,
 ];
 
 const performanceTests = tests.map(

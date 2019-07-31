@@ -198,6 +198,27 @@ const legalSenarios = [
       aFibonacciStream: 1123581321,
     },
   }),
+  senario('a legal json with three fibonacci streams', {
+    input: () => ({
+      aFibonacciRawStream: toStream(
+        fibonacci(1, 9, true),
+        JsonStream.jsonTypes.raw,
+      ),
+      aFibonacciArrayStream: toStream(
+        fibonacci(1, 9),
+        JsonStream.jsonTypes.array,
+      ),
+      aFibonacciStringStream: toStream(
+        fibonacci(1, 9),
+        JsonStream.jsonTypes.string,
+      ),
+    }),
+    expectedResult: {
+      aFibonacciRawStream: 1123581321,
+      aFibonacciArrayStream: [1, 1, 2, 3, 5, 8, 13, 21],
+      aFibonacciStringStream: '1123581321',
+    },
+  }),
   senario('a legal json with promise', {
     input: () => ({
       aKeyWithPromise: Promise.resolve('aValue'),

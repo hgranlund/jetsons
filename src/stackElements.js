@@ -8,47 +8,57 @@ const jsonTypes = {
   raw: 'raw',
 };
 
-const getStackElementClass = value => {
-  const type = typeof value;
-  if (value instanceof Promise) return PromiseStackElement;
-  if (value instanceof Function) return EmptyStackElement;
-  if (type === 'symbol') return EmptyStackElement;
-  if (type === 'number') return NumberStackElement;
-  if (type === 'string') return StringStackElement;
-  if (type === 'boolean') return PrimitiveStackElement;
-  if (type === 'undefined') return NullStackElement;
-  if (value === null) return NullStackElement;
-  if (value instanceof Stream) {
-    if (value.jsonType) {
-      switch (value.jsonType) {
-        case jsonTypes.array:
-          if (value._readableState.objectMode) {
-            return ArrayObjectStreamStackElement;
-          } else {
-            return ArrayStreamStackElement;
-          }
-        case jsonTypes.raw:
-          return StreamStackElement;
-        case jsonTypes.string:
-          return StringStreamStackElement;
-        default:
-          break;
-      }
-    } else if (value._readableState.objectMode) {
-      return ArrayObjectStreamStackElement;
-    } else {
-      return StringStreamStackElement;
+const getStreamStackElementClass = value => {
+  if (value.jsonType) {
+    switch (value.jsonType) {
+      case jsonTypes.array:
+        if (value._readableState.objectMode) {
+          return ArrayObjectStreamStackElement;
+        } else {
+          return ArrayStreamStackElement;
+        }
+      case jsonTypes.raw:
+        return StreamStackElement;
+      case jsonTypes.string:
+        return StringStreamStackElement;
+      default:
+        break;
     }
+  } else if (value._readableState.objectMode) {
+    return ArrayObjectStreamStackElement;
+  } else {
+    return StringStreamStackElement;
   }
-  if (Array.isArray(value)) return ArrayStackElement;
-  if (typeof value.then === 'function') return PromiseStackElement;
-  if (type === 'object' || value instanceof Object) {
-    return ObjectStackElement;
+};
+
+const getStackElementClass = value => {
+  switch (typeof value) {
+    case 'number':
+      return NumberStackElement;
+    case 'boolean':
+      return PrimitiveStackElement;
+    case 'string':
+      return StringStackElement;
+    case 'undefined':
+      return NullStackElement;
+    case 'object':
+      if (value === null) return NullStackElement;
+      if (Array.isArray(value)) return ArrayStackElement;
+      if (value instanceof Stream) {
+        return getStreamStackElementClass(value);
+      }
+      if (value instanceof Promise) return PromiseStackElement;
+      if (typeof value.then === 'function') return PromiseStackElement;
+      return ObjectStackElement;
+    case 'symbol':
+      return EmptyStackElement;
+    case 'function':
+      return EmptyStackElement;
+    case 'bigint':
+      throw new Error(`BigInt value can't be serialized in JSON`);
+    default:
+      return StackElement;
   }
-  if (type === 'bigint') {
-    throw new Error(`BigInt value can't be serialized in JSON`);
-  }
-  return StackElement;
 };
 
 class StackElement {

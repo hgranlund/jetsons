@@ -13,7 +13,7 @@ class JsonStream extends Readable {
   constructor(value, replacer, space) {
     super();
     this.hasEnded = false;
-    this.stack = new Deque(128);
+    this.stack = new Deque(64);
 
     const options = new JsonStreamOptions(replacer, space);
     this.addFirstStackElement(options.initReplace(value), options);
@@ -34,28 +34,19 @@ class JsonStream extends Readable {
     }
   }
 
-  get peekStack() {
-    return this.stack.peekFront();
-  }
-
-  get isEmpty() {
-    return this.stack.isEmpty();
-  }
-
   shouldStartToRead() {
     if (this.reading) {
       return false;
-    }
-    if (this.isEmpty) {
+    } else if (this.stack.isEmpty()) {
       this.push(null);
       this.hasEnded = true;
       debug('Completed');
       return false;
-    }
-    if (this.hasEnded) {
+    } else if (this.hasEnded) {
       return false;
+    } else {
+      return true;
     }
-    return true;
   }
 
   _read() {
@@ -80,8 +71,8 @@ class JsonStream extends Readable {
   }
 
   async processTopStackElement() {
-    if (this.isEmpty) return false;
-    const element = this.peekStack;
+    if (this.stack.isEmpty()) return false;
+    const element = this.stack.peekFront();
     const { next, elements, done } = await element.next();
     if (done) {
       this.stack.shift();
