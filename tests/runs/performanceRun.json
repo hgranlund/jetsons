@@ -2,41 +2,41 @@
   {
     "name": "simpleJsonTest",
     "num": 50,
-    "mean": 0.2904,
-    "min": 0.1807,
-    "max": 4.0036,
-    "median": 0.2011,
-    "stdDeviation": 0.5373,
-    "throughput": 172171.1266
+    "mean": 0.3017,
+    "min": 0.1781,
+    "max": 3.94,
+    "median": 0.2033,
+    "stdDeviation": 0.5304,
+    "throughput": 165749.1129
   },
   {
     "name": "jsonWith4MBStringStream",
     "num": 50,
-    "mean": 12.7048,
-    "min": 9.7309,
-    "max": 28.1981,
-    "median": 11.916,
-    "stdDeviation": 3.1128,
-    "throughput": 3935.521
+    "mean": 12.3687,
+    "min": 10.1003,
+    "max": 23.0803,
+    "median": 11.7976,
+    "stdDeviation": 2.3492,
+    "throughput": 4042.4495
   },
   {
     "name": "hugeJson",
     "num": 50,
-    "mean": 110.4683,
-    "min": 105.6576,
-    "max": 168.8126,
-    "median": 108.1841,
-    "stdDeviation": 8.9063,
-    "throughput": 452.6185
+    "mean": 110.1445,
+    "min": 103.7596,
+    "max": 166.9532,
+    "median": 105.7595,
+    "stdDeviation": 13.6781,
+    "throughput": 453.949
   },
   {
     "name": "hugeArray",
     "num": 50,
-    "mean": 475.8923,
-    "min": 457.9728,
-    "max": 502.5734,
-    "median": 475.1547,
-    "stdDeviation": 8.1209,
-    "throughput": 105.0658
+    "mean": 469.4703,
+    "min": 448.2538,
+    "max": 526.4374,
+    "median": 469.1819,
+    "stdDeviation": 10.5414,
+    "throughput": 106.503
   }
 ]

@@ -7,46 +7,29 @@ const {
 const { Readable } = require('stream');
 const Deque = require('double-ended-queue');
 const { inspect } = require('util');
+const JsonStreamOptions = require('./jsonStreamOptions');
 
 class JsonStream extends Readable {
   constructor(value, replacer, space) {
     super();
-    this.replacer = replacer;
-    this.space = this.spaceFunction(space);
     this.hasEnded = false;
     this.stack = new Deque(128);
-    this.addFirstStackElement(value);
+
+    const options = new JsonStreamOptions(replacer, space);
+    this.addFirstStackElement(options.initReplace(value), options);
+
     this.on('close', () => this.onClose());
     debug(`Created`);
   }
 
-  spaceFunction(space) {
-    if (Number.isInteger(space)) {
-      const number = space > 10 ? 10 : space;
-      return depth => `\n${' '.repeat(depth * number)}`;
-    }
-    if (typeof space === 'string') {
-      const newSpace = space.substring(0, 10);
-      return depth => `\n${newSpace.repeat(depth)}`;
-    }
-    return () => '';
-  }
-
-  addFirstStackElement(value) {
-    if (typeof this.replacer === 'function') {
-      value = this.replacer('', value);
-    }
+  addFirstStackElement(value, options) {
     const shouldReturnUndefined = ['function', 'undefined', 'symbol'].includes(
       typeof value,
     );
     if (shouldReturnUndefined) {
-      this.stack.push(new StackElement(undefined, this.replacer, this.space));
+      this.stack.push(new StackElement(undefined, options));
     } else {
-      const stackElement = StackElement.factory(
-        value,
-        this.replacer,
-        this.space,
-      );
+      const stackElement = StackElement.factory(value, options);
       this.stack.push(stackElement);
     }
   }
@@ -111,6 +94,7 @@ class JsonStream extends Readable {
     }
     return true;
   }
+
   handleError(error) {
     this.error = error;
     this.error.jsonStreamStack = this.stack.toArray();

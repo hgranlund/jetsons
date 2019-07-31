@@ -52,42 +52,40 @@ const getStackElementClass = value => {
 };
 
 class StackElement {
-  constructor(value, replacer, space, depth) {
-    this.replacer = replacer;
-    this._space = space;
+  constructor(value, options, depth) {
+    this.options = options;
     this._isComplete = false;
     this.value = this.parseValue(value);
     this.depth = depth;
     this.debug('Created');
   }
 
-  static factory(value, replacer, space, depth = 0) {
+  static factory(value, options, depth = 0) {
     if (value && value.toJSON instanceof Function) {
       value = value.toJSON();
     }
     const StackElementClass = getStackElementClass(value);
-    return new StackElementClass(value, replacer, space, depth);
+    return new StackElementClass(value, options, depth);
   }
 
   spaceStart(char = '') {
-    return char + this._space(this.depth);
+    return char + this.options.space(this.depth);
   }
 
   spaceEnd(char = '') {
-    return this._space(this.depth) + char;
+    return this.options.space(this.depth) + char;
   }
 
   newSpacedElement(char, start = true) {
     return new StackElement(
       start ? this.spaceStart(char) : this.spaceEnd(char),
-      this.replacer,
-      this._space,
+      this.options,
       this.depth,
     );
   }
 
   newElement(value, depth = this.depth) {
-    return StackElement.factory(value, this.replacer, this._space, depth);
+    return StackElement.factory(value, this.options, depth);
   }
 
   completed() {
@@ -120,8 +118,8 @@ class StringStackElement extends StackElement {
 }
 
 class EmptyStackElement extends StackElement {
-  constructor(value, replacer, space, depth) {
-    super(value, replacer, space, depth);
+  constructor(...args) {
+    super(...args);
     this.completed();
   }
 }
@@ -132,8 +130,8 @@ class PrimitiveStackElement extends StackElement {
   }
 }
 class NullStackElement extends PrimitiveStackElement {
-  constructor(value, replacer, space, depth) {
-    super(null, replacer, space, depth);
+  constructor(value, options, depth) {
+    super(null, options, depth);
   }
 }
 
@@ -148,14 +146,14 @@ class NumberStackElement extends StackElement {
 }
 
 class StreamStackElement extends StackElement {
-  constructor(value, replacer, space, depth) {
-    super(value, replacer, space, depth);
+  constructor(...args) {
+    super(...args);
     this._error = null;
     this._isEmpty = false;
     this._first = true;
     this.hasEnded = false;
     this.initValidate();
-    value
+    this.value
       .on('end', () => {
         this.hasEnded = true;
       })
@@ -247,8 +245,8 @@ class StreamStackElement extends StackElement {
 }
 
 class ArrayStreamStackElement extends StreamStackElement {
-  constructor(value, replacer, space, depth) {
-    super(value, replacer, space, depth);
+  constructor(...args) {
+    super(...args);
     this._first = true;
     this._secondStateSendt = false;
     this.depth++;
@@ -280,8 +278,8 @@ class ArrayStreamStackElement extends StreamStackElement {
 }
 
 class StringStreamStackElement extends StreamStackElement {
-  constructor(value, replacer, space, depth) {
-    super(value, replacer, space, depth);
+  constructor(value, options, depth) {
+    super(value, options, depth);
     this._first = true;
   }
 
@@ -327,8 +325,8 @@ class PromiseStackElement extends StackElement {
 }
 
 class ArrayStackElement extends StackElement {
-  constructor(value, replacer, space, depth) {
-    super(value, replacer, space, depth);
+  constructor(value, options, depth) {
+    super(value, options, depth);
     this._first = true;
     this.atIndex = 0;
     this.depth++;
@@ -342,7 +340,7 @@ class ArrayStackElement extends StackElement {
 
     const nextElements = [];
     if (this.value.length - 1 > this.atIndex) {
-      const to = Math.min(this.value.length - 1, this.atIndex + 5000);
+      const to = Math.min(this.value.length - 1, this.atIndex + 1000);
       while (this.atIndex < to) {
         nextElements.push(this.newElement(this.value[this.atIndex]));
         nextElements.push(this.newSpacedElement(','));
@@ -365,8 +363,8 @@ class ArrayStackElement extends StackElement {
 }
 
 class ObjectStackElement extends StackElement {
-  constructor(value, replacer, space, depth) {
-    super(value, replacer, space, depth);
+  constructor(value, options, depth) {
+    super(value, options, depth);
     this._first = true;
     this.depth++;
   }
@@ -377,12 +375,18 @@ class ObjectStackElement extends StackElement {
 
   parseValue(value) {
     let entries = Object.entries(value);
-    if (typeof this.replacer === 'function') {
-      entries = entries.map(([key, value]) => [key, this.replacer(key, value)]);
+
+    if (this.options.isReplacerAFunction()) {
+      entries = entries.map(([key, value]) => [
+        key,
+        this.options.replacer(key, value),
+      ]);
     }
-    if (Array.isArray(this.replacer)) {
-      entries = entries.filter(([key]) => this.replacer.includes(key));
+
+    if (this.options.isReplacerAArray()) {
+      entries = entries.filter(([key]) => this.options.replacer.includes(key));
     }
+
     return entries.filter(([, value]) => this.shouldValueBeStringified(value));
   }
 
