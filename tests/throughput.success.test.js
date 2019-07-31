@@ -105,6 +105,16 @@ describe('Jetsons is loaded', () => {
       const expectedJson = JSON.stringify(testJson, null, 5);
       expect(json).toEqual(expectedJson);
     });
+
+    it('should handle number 5 as space with array stream', async () => {
+      const testjsonWithStream = {
+        ...testJson,
+        depth1: toStream(testJson.depth1),
+      };
+      const json = await new Collector(testjsonWithStream, null, 5).toJson();
+      const expectedJson = JSON.stringify(testJson, null, 5);
+      expect(json).toEqual(expectedJson);
+    });
   });
 
   describe('And JsonStream is aborted/closed', () => {

@@ -26,7 +26,7 @@ const toStream = (value, jsonType) => {
 };
 
 const intoStream = (obj, options) => {
-  const values = Array.isArray(obj) ? obj : [obj];
+  const values = Array.isArray(obj) ? Array.from(obj) : [obj];
   const stream = new Readable({
     ...options,
     read() {
