@@ -35,14 +35,12 @@ class JsonStream extends Readable {
   }
 
   shouldStartToRead() {
-    if (this.reading) {
+    if (this.reading || this.hasEnded) {
       return false;
     } else if (this.stack.isEmpty()) {
       this.push(null);
       this.hasEnded = true;
       debug('Completed');
-      return false;
-    } else if (this.hasEnded) {
       return false;
     } else {
       return true;

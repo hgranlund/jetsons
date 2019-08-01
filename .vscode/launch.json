@@ -14,7 +14,7 @@
       "type": "node",
       "request": "launch",
       "name": "Launch Program",
-      "program": "${workspaceFolder}/tests/performanceTest.js",
+      "program": "${workspaceFolder}/tests/benchmark.js",
       "outputCapture": "std"
     },
     {
