@@ -85,4 +85,20 @@ describe('Jetsons is loaded', () => {
       expect(collector.toJson()).rejects.toEqual(expectedError);
     });
   });
+  describe('And processed stream throws error', () => {
+    it('should emit error if porcessed stream emits error', done => {
+      const streamWithError = toStream(
+        new Promise((resolve, reject) => {
+          setTimeout(() => {
+            reject(new Error('A error'));
+          }, 500);
+        }),
+      );
+      const collector = new Collector({ streamWithError });
+      collector.toJson().catch(error => {
+        expect(error).toBeInstanceOf(Error);
+        done();
+      });
+    });
+  });
 });

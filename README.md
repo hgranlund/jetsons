@@ -4,6 +4,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/hgranlund/jetsons.svg?style=social&label=Stars)](https://github.com/hgranlund/jetsons)
 [![Build](https://travis-ci.org/hgranlund/jetsons.png)](http://travis-ci.org/hgranlund/jetsons)
+[![Coverage Status](https://coveralls.io/repos/github/hgranlund/jetsons/badge.svg?branch=master)](https://coveralls.io/github/hgranlund/jetsons?branch=master)
 
 The Jetsons's is a family of Readable Streams that transforms objects onto a serialized output (e.g. JSON). It recursively resolves Promises or Readable streams. As of now, the Jetsons's is a very small family with only one Stream, JsonStream, but hopefully more is comming.
 

@@ -38,6 +38,14 @@ const legalSenarios = [
       aKeyWithNumber: 1,
     },
   }),
+  senario('a legal json with Infinity', {
+    input: () => ({
+      aKeyWithNumber: Infinity,
+    }),
+    expectedResult: {
+      aKeyWithNumber: null,
+    },
+  }),
   senario('a legal json with Boolean', {
     input: () => ({
       aKeyWithBoolean: true,
@@ -56,10 +64,10 @@ const legalSenarios = [
   }),
   senario('a legal json with String and special chars', {
     input: () => ({
-      aKeyWithString: 'line1\nline2',
+      aKeyWithString: 'line1\nline2\\\b\f\t\f\r"\u0000',
     }),
     expectedResult: {
-      aKeyWithString: 'line1\nline2',
+      aKeyWithString: 'line1\nline2\\\b\f\t\f\r"\u0000',
     },
   }),
   senario('a legal json with number as String', {
@@ -93,12 +101,15 @@ const legalSenarios = [
       aKeyWithString: `\u007f#\u0600`,
     },
   }),
-  senario('a legal json with null value', {
+  senario('a legal json with null, symbol, function and undefined value', {
     input: () => ({
-      aKeyWithString: null,
+      aKeyWithNull: null,
+      aKeyWithUndefined: undefined,
+      aKeyWithFunction: () => {},
+      aKeyWithSymbol: Symbol(42),
     }),
     expectedResult: {
-      aKeyWithString: null,
+      aKeyWithNull: null,
     },
   }),
   senario('a legal json with String', {

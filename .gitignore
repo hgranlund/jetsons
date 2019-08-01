@@ -4,3 +4,6 @@ report.20*.json
 tests/runs/performanceRun-2019*
 .vscode/settings.json
 *-v8.log
+tmp*
+coverage/*
+.coveralls.yml

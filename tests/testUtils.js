@@ -62,10 +62,12 @@ const promiseToStream = (valueToBeStream, options) => {
     read() {
       if (!called) {
         called = true;
-        valueToBeStream.then(value => {
-          this.push(value);
-          setImmediate(() => this.push(null));
-        });
+        valueToBeStream
+          .then(value => {
+            this.push(value);
+            setImmediate(() => this.push(null));
+          })
+          .catch(error => this.emit('error', error));
       }
       return null;
     },
@@ -79,10 +81,6 @@ function* fibonacci(from, to, useString = false) {
   let next = 1;
 
   while (infinite || to--) {
-    if (current >= Number.MAX_SAFE_INTEGER) {
-      current = 0;
-      next = 1;
-    }
     if (current >= from) {
       yield parse(current);
     }
