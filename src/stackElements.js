@@ -37,7 +37,7 @@ const getStackElementClass = value => {
     case 'number':
       return NumberStackElement;
     case 'boolean':
-      return PrimitiveStackElement;
+      return BooleanStackElement;
     case 'string':
       return StringStackElement;
     case 'undefined':
@@ -65,11 +65,25 @@ const getStackElementClass = value => {
   }
 };
 
-class StackElement {
+class SimpleStackElement {
+  constructor(value, options) {
+    this.value = this.parseValue(value, options);
+  }
+
+  parseValue(value) {
+    return value;
+  }
+
+  async next() {
+    return { next: this.value, elements: [], done: true };
+  }
+}
+
+class StackElement extends SimpleStackElement {
   constructor(value, options, depth) {
+    super(value, options);
     this.options = options;
     this._isComplete = false;
-    this.value = this.parseValue(value);
     this.depth = depth;
     this.debug('Created');
   }
@@ -91,10 +105,8 @@ class StackElement {
   }
 
   newSpacedElement(char, start = true) {
-    return new StackElement(
+    return new SimpleStackElement(
       start ? this.spaceStart(char) : this.spaceEnd(char),
-      this.options,
-      this.depth,
     );
   }
 
@@ -105,10 +117,6 @@ class StackElement {
   completed() {
     this.debug('Completed');
     this._isComplete = true;
-  }
-
-  parseValue(value) {
-    return value;
   }
 
   state(next, elements = []) {
@@ -125,24 +133,24 @@ class StackElement {
   }
 }
 
-class StringStackElement extends StackElement {
+class StringStackElement extends SimpleStackElement {
   parseValue(value) {
     return quote(value);
   }
 }
 
-class PrimitiveStackElement extends StackElement {
-  parseValue(value) {
-    return String(value);
+class BooleanStackElement extends SimpleStackElement {
+  parseValue(boolean) {
+    return boolean ? 'true' : 'false';
   }
 }
-class NullStackElement extends PrimitiveStackElement {
-  constructor(_, options, depth) {
-    super(null, options, depth);
+class NullStackElement extends SimpleStackElement {
+  parseValue() {
+    return 'null';
   }
 }
 
-class NumberStackElement extends StackElement {
+class NumberStackElement extends SimpleStackElement {
   parseValue(value) {
     if (Number.isFinite(value)) {
       return String(value);
@@ -295,7 +303,7 @@ class StringStreamStackElement extends StreamStackElement {
   }
 
   firstState() {
-    return super.state(null, [new StackElement('"')]);
+    return super.state(null, [new SimpleStackElement('"')]);
   }
 
   state(next, elements = []) {
@@ -380,18 +388,18 @@ class ObjectStackElement extends StackElement {
     return !this.value.length;
   }
 
-  parseValue(value) {
+  parseValue(value, options) {
     let entries = Object.entries(value);
 
-    if (this.options.isReplacerAFunction()) {
+    if (options.isReplacerAFunction()) {
       entries = entries.map(([key, value]) => [
         key,
-        this.options.replacer(key, value),
+        options.replacer(key, value),
       ]);
     }
 
-    if (this.options.isReplacerAArray()) {
-      entries = entries.filter(([key]) => this.options.replacer.includes(key));
+    if (options.isReplacerAArray()) {
+      entries = entries.filter(([key]) => options.replacer.includes(key));
     }
 
     return entries.filter(([, value]) => this.shouldValueBeStringified(value));
