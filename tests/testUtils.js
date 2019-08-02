@@ -15,12 +15,12 @@ const toGenericStream = (valueToBeStream, options = {}) => {
   } else if (typeof valueToBeStream === 'string') {
     return intoStream(valueToBeStream.split(''), { objectMode: false });
   } else {
-    return intoStream(valueToBeStream, { objectMode: true });
+    return intoStream(valueToBeStream, { objectMode: true, ...options });
   }
 };
 
-const toStream = (value, jsonType) => {
-  const stream = toGenericStream(value);
+const toStream = (value, jsonType, options) => {
+  const stream = toGenericStream(value, options);
   stream.jsonType = jsonType;
   return stream;
 };

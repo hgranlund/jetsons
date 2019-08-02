@@ -1,10 +1,28 @@
 require('jest-extended');
 const { toStream, devNullStream } = require('./testUtils');
-const { Collector } = require('../src');
+const { Collector, JsonStream } = require('../src');
 process.on('unhandledRejection', error => {
   console.error(error);
 });
 describe('Jetsons is loaded', () => {
+  describe('and value cant be parsed to legal JSON', () => {
+    it('should reject if tried to collect object', () => {
+      const collector = new Collector([
+        toStream([''], Collector.jsonTypes.raw),
+        1,
+      ]);
+
+      expect(collector.toObject()).rejects.toBeInstanceOf(Error);
+    });
+    it('should resolve illegal json string if tried to collect json', () => {
+      const collector = new Collector([
+        toStream([''], Collector.jsonTypes.raw),
+        1,
+      ]);
+
+      expect(collector.toJson()).resolves.toEqual('[,1]');
+    });
+  });
   describe('And if stream has ended', () => {
     let endedStream = toStream('value');
 
@@ -99,6 +117,56 @@ describe('Jetsons is loaded', () => {
         expect(error).toBeInstanceOf(Error);
         done();
       });
+    });
+  });
+
+  describe('And JsonStream is aborted/closed', () => {
+    it('should propagate close to streams on stack', done => {
+      let output = '';
+      const streamToBeEnded = toStream(
+        new Promise(resolve => {
+          setTimeout(() => {
+            resolve('Returned after 500ms');
+          }, 500);
+        }),
+      ).on('close', () => {
+        expect(output).not.toContain('Returned after 500ms');
+        done();
+      });
+      const jsonStream = new JsonStream([streamToBeEnded]);
+      jsonStream
+        .on('data', data => {
+          output += data.toString();
+        })
+        .pipe(devNullStream());
+      setTimeout(() => {
+        jsonStream.destroy();
+      }, 100);
+    });
+    it('should propagate close to requestStreams on stack', done => {
+      let output = '';
+      const requesStreamToBeEnded = toStream(
+        new Promise(resolve => {
+          setTimeout(() => {
+            resolve('Returned after 500ms');
+          }, 500);
+        }),
+      ).on('close', () => {});
+      requesStreamToBeEnded.setHeader = () => {};
+      requesStreamToBeEnded.abort = () => {
+        expect(output).not.toContain('Returned after 500ms');
+        requesStreamToBeEnded.destroy();
+        done();
+      };
+      const jsonStream = new JsonStream([requesStreamToBeEnded]);
+      jsonStream
+        .on('data', data => {
+          output += data.toString();
+        })
+        .pipe(devNullStream());
+      setTimeout(() => {
+        jsonStream.destroy();
+      }, 100);
     });
   });
 });

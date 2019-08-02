@@ -41,11 +41,11 @@ const getResults = event => {
     const { mean, deviation, rme } = stats;
     return {
       name,
-      count,
-      'mean(ms)': (mean * 1000).toFixed(2),
-      'deviation(ms)': (deviation * 1000).toFixed(2),
-      'ops/sec': hz.toFixed(2),
-      rme: rme.toFixed(2),
+      count: Number(count),
+      'mean(ms)': fixedTo(mean * 1000, 2),
+      'deviation(ms)': fixedTo(deviation * 1000, 2),
+      'ops/sec': fixedTo(hz, 2),
+      rme: fixedTo(rme, 2),
       node: process.versions.node,
     };
   });

@@ -190,12 +190,45 @@ const legalSenarios = [
       aFibonacciStream: '1123581321',
     },
   }),
+  senario('a legal json with fibonacci as string stream', {
+    input: () => ({
+      aFibonacciStream: toStream(
+        fibonacci(1, 9, true),
+        JsonStream.jsonTypes.array,
+        {
+          objectMode: false,
+        },
+      ),
+    }),
+    expectedResult: {
+      aFibonacciStream: ['1', '1', '2', '3', '5', '8', '13', '21'],
+    },
+  }),
   senario('a legal json with fibonacci as array stream', {
     input: () => ({
       aFibonacciStream: toStream(fibonacci(1, 9), JsonStream.jsonTypes.array),
     }),
     expectedResult: {
       aFibonacciStream: [1, 1, 2, 3, 5, 8, 13, 21],
+    },
+  }),
+  senario('a legal json with object array stream', {
+    input: () => ({
+      aArrayStream: toStream(
+        [
+          1,
+          { key: 'string' },
+          [1, 2, 3],
+          false,
+          Symbol(43),
+          undefined,
+          () => {},
+        ],
+        JsonStream.jsonTypes.array,
+      ),
+    }),
+    expectedResult: {
+      aArrayStream: [1, { key: 'string' }, [1, 2, 3], false, null, null, null],
     },
   }),
   senario('a legal json with fibonacci as raw stream', {
@@ -308,7 +341,7 @@ const getTestSenarios = (senarioNum = -1) => {
   if (senarioNum < 0) {
     return legalSenarios;
   } else {
-    return legalSenarios.splice(senarioNum, senarioNum + 1);
+    return legalSenarios.slice(senarioNum, senarioNum + 1);
   }
 };
 

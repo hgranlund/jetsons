@@ -27,7 +27,7 @@ class JsonStreamOptions {
       const number = space > 10 ? 10 : space;
       return depth => `\n${' '.repeat(depth * number)}`;
     }
-    if (typeof space === 'string') {
+    if (typeof space === 'string' && space !== '') {
       const newSpace = space.substring(0, 10);
       return depth => `\n${newSpace.repeat(depth)}`;
     }

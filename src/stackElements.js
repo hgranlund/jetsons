@@ -24,7 +24,8 @@ const getStreamStackElementClass = value => {
       default:
         break;
     }
-  } else if (value._readableState.objectMode) {
+  }
+  if (value._readableState.objectMode) {
     return ArrayObjectStreamStackElement;
   } else {
     return StringStreamStackElement;
@@ -47,17 +48,20 @@ const getStackElementClass = value => {
       if (value instanceof Stream) {
         return getStreamStackElementClass(value);
       }
-      if (value instanceof Promise) return PromiseStackElement;
-      if (typeof value.then === 'function') return PromiseStackElement;
+      if (value instanceof Promise || typeof value.then === 'function') {
+        return PromiseStackElement;
+      }
       return ObjectStackElement;
     case 'symbol':
-      return EmptyStackElement;
+      return NullStackElement;
     case 'function':
-      return EmptyStackElement;
+      return NullStackElement;
     case 'bigint':
       throw new Error(`BigInt value can't be serialized in JSON`);
     default:
-      return StackElement;
+      throw new Error(
+        `type ${typeof value} - ${value} value can't be serialized in JSON`,
+      );
   }
 };
 
@@ -78,11 +82,11 @@ class StackElement {
     return new StackElementClass(value, options, depth);
   }
 
-  spaceStart(char = '') {
+  spaceStart(char) {
     return char + this.options.space(this.depth);
   }
 
-  spaceEnd(char = '') {
+  spaceEnd(char) {
     return this.options.space(this.depth) + char;
   }
 
@@ -127,20 +131,13 @@ class StringStackElement extends StackElement {
   }
 }
 
-class EmptyStackElement extends StackElement {
-  constructor(...args) {
-    super(...args);
-    this.completed();
-  }
-}
-
 class PrimitiveStackElement extends StackElement {
   parseValue(value) {
     return String(value);
   }
 }
 class NullStackElement extends PrimitiveStackElement {
-  constructor(value, options, depth) {
+  constructor(_, options, depth) {
     super(null, options, depth);
   }
 }
@@ -272,15 +269,15 @@ class ArrayStreamStackElement extends StreamStackElement {
   }
 
   state(next, elements = []) {
-    if (!next) {
+    if (next === null) {
       return super.state(null, elements);
     }
     if (!this._secondStateSendt) {
       this._secondStateSendt = true;
-      return super.state(escapeString(next.toString()), elements);
+      return super.state(quote(next.toString()), elements);
     } else {
       return super.state(
-        `${this.spaceStart(',')}${escapeString(next.toString())}`,
+        `${this.spaceStart(',')}${quote(next.toString())}`,
         elements,
       );
     }
@@ -311,7 +308,7 @@ class StringStreamStackElement extends StreamStackElement {
 
 class ArrayObjectStreamStackElement extends ArrayStreamStackElement {
   state(next, elements = []) {
-    if (!next) {
+    if (next === null) {
       return super.state(null, elements);
     }
     if (this._secondStateSendt) {
@@ -417,7 +414,7 @@ class ObjectStackElement extends StackElement {
     }
 
     const [key, value] = this.value.shift();
-    const next = `"${key}":${this.spaceEnd() ? ' ' : ''}`;
+    const next = `"${key}":${this.spaceEnd('') ? ' ' : ''}`;
     const nextElements = [this.newElement(value)];
 
     if (!this.isEmpty) {

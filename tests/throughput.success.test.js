@@ -2,11 +2,11 @@ require('jest-extended');
 const { Readable } = require('stream');
 const { legalSenarios } = require('./testSenarios');
 const { JsonStream, Collector } = require('../src');
-const { toStream, devNullStream } = require('./testUtils');
+const { toStream } = require('./testUtils');
 
 describe('Jetsons is loaded', () => {
   describe.each(legalSenarios)(
-    'and toJson on senario[%#]: %s',
+    'and a JsonStream on created on senario[%#]: %s',
     (name, senario) => {
       let stream;
       beforeAll(() => {
@@ -27,7 +27,7 @@ describe('Jetsons is loaded', () => {
 
   describe.each(legalSenarios)(
     'and toObject on senario[%#]: %s',
-    (name, senario) => {
+    (_, senario) => {
       let object;
 
       beforeAll(async done => {
@@ -43,37 +43,26 @@ describe('Jetsons is loaded', () => {
     },
   );
 
-  describe.each(legalSenarios)(
-    'and toJsonString on senario[%#]: %s',
-    (name, senario) => {
-      let jsonString;
+  describe('and toJsonString on a value', () => {
+    let value;
+    let jsonString;
 
-      beforeAll(async done => {
-        const { input, replacer, space } = senario;
-        const collector = new Collector(input(), replacer, space);
-        try {
-          jsonString = await collector.toJson();
-        } catch (error) {
-          console.error(`${error.message} \n ${error.jsonString}`);
-        }
-        done();
-      });
+    beforeEach(async done => {
+      value = { aKeyWithArray: [1, true, 'aSting'] };
+      const collector = new Collector(value, null, '');
+      try {
+        jsonString = await collector.toJson();
+      } catch (error) {
+        console.error(`${error.message} \n ${error.jsonString}`);
+      }
+      done();
+    });
 
-      it('should return a expected json string', () => {
-        try {
-          if (!senario.expectedResult) {
-            expect(jsonString).toEqual(senario.expectedResult);
-          } else {
-            const parsedJson = JSON.parse(jsonString);
-            expect(parsedJson).toEqual(senario.expectedResult);
-          }
-        } catch (error) {
-          error.message = `${error.message} \n ${jsonString}`;
-          throw error;
-        }
-      });
-    },
-  );
+    it('should return a expected json string', () => {
+      const expectedJsonString = JSON.stringify(value, null, '');
+      expect(jsonString).toEqual(expectedJsonString);
+    });
+  });
 
   describe('And the space parameter is used', () => {
     const testJson = {
@@ -114,31 +103,6 @@ describe('Jetsons is loaded', () => {
       const json = await new Collector(testjsonWithStream, null, 5).toJson();
       const expectedJson = JSON.stringify(testJson, null, 5);
       expect(json).toEqual(expectedJson);
-    });
-  });
-
-  describe('And JsonStream is aborted/closed', () => {
-    it('should propagate close to streams on stack', done => {
-      let output = '';
-      const streamToBeEnded = toStream(
-        new Promise(resolve => {
-          setTimeout(() => {
-            resolve('Returned after 2s');
-          }, 500);
-        }),
-      ).on('close', () => {
-        expect(output).not.toContain('Returned after 2s');
-        done();
-      });
-      const jsonStream = new JsonStream([streamToBeEnded]);
-      jsonStream
-        .on('data', data => {
-          output += data.toString();
-        })
-        .pipe(devNullStream());
-      setTimeout(() => {
-        jsonStream.destroy();
-      }, 100);
     });
   });
 });
