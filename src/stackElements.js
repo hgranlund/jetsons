@@ -116,16 +116,15 @@ class StackElement extends SimpleStackElement {
 
   completed() {
     this.debug('Completed');
-    this._isComplete = true;
   }
 
-  state(next, elements = []) {
-    return { next, elements, done: this._isComplete };
+  state(next, elements = [], done = false) {
+    return { next, elements, done };
   }
 
   async next() {
     this.completed();
-    return this.state(this.value);
+    return this.state(this.value, [], true);
   }
 
   debug(msg) {
@@ -160,25 +159,35 @@ class NumberStackElement extends SimpleStackElement {
   }
 }
 
+const states = {
+  first: Symbol('first'),
+  waiting: Symbol('waiting'),
+  readable: Symbol('readable'),
+  ended: Symbol('ended'),
+  error: Symbol('error'),
+};
+
 class StreamStackElement extends StackElement {
   constructor(...args) {
     super(...args);
-    this._error = null;
-    this._isEmpty = false;
-    this._first = true;
-    this.hasEnded = false;
+    this._inState = states.waiting;
+    this._rejections = new Set();
     this.initValidate();
     this.value
+      .on('error', error => this.handleError(error))
       .on('end', () => {
-        this.hasEnded = true;
-      })
-      .on('error', error => {
-        this._error = error;
+        this._inState = states.ended;
       });
   }
 
+  handleError(error) {
+    this._inState = states.error;
+    this._error = error;
+    this._rejections.forEach(reject => reject(error));
+  }
+
   endState() {
-    return super.state();
+    return this.state(null, [], true);
   }
 
   firstState() {
@@ -190,69 +199,113 @@ class StreamStackElement extends StackElement {
       this.value._readableState.ended &&
       this.value._readableState.endEmitted
     ) {
-      this._error = new Error(
-        'Readable Stream has already ended. Unable to process it!',
+      this.handleError(
+        new Error('Readable Stream has already ended. Unable to process it!'),
       );
     } else if (this.value._readableState.flowing) {
-      this._error = new Error(
-        'Readable Stream is in flowing mode, data may be lost',
+      this.handleError(
+        new Error('Readable Stream is in flowing mode, data may be lost'),
       );
     }
   }
 
-  readWhenReady() {
+  untilReadable() {
+    let eventListener = null;
+    const promise = new Promise((resolve, reject) => {
+      eventListener = () => {
+        this._inState = states.readable;
+        this._rejections.delete(reject);
+        eventListener = null;
+        resolve();
+      };
+      this.value.once('readable', eventListener);
+      this._rejections.add(reject);
+    });
+
+    const cleanup = () => {
+      if (eventListener == null) return;
+      this.value.removeListener('readable', eventListener);
+    };
+
+    return { cleanup, promise };
+  }
+
+  untilEnd() {
+    let eventListener = null;
+
+    const promise = new Promise((resolve, reject) => {
+      eventListener = () => {
+        this._inState = states.ended;
+        this._rejections.delete(reject);
+        eventListener = null;
+        resolve();
+      };
+      this.value.once('end', eventListener);
+      this._rejections.add(reject);
+    });
+
+    const cleanup = () => {
+      if (eventListener == null) return;
+      this.value.removeListener('end', eventListener);
+    };
+
+    return { cleanup, promise };
+  }
+
+  nextWhenReadable() {
     const chunck = this.value.read();
     if (chunck !== null) {
-      return Promise.resolve(chunck);
+      return this.state(chunck);
+    } else {
+      this._inState = states.waiting;
+      return this.next();
     }
-    if (this.hasEnded) {
-      return Promise.resolve(null);
+  }
+
+  async nextWhenWaiting() {
+    const read = this.untilReadable();
+    const end = this.untilEnd();
+    try {
+      await Promise.race([read.promise, end.promise]);
+      return this.next();
+    } finally {
+      read.cleanup();
+      end.cleanup();
     }
-    return new Promise((resolve, reject) => {
-      const endListener = () => resolve();
-      this.value.once('end', endListener);
-      this.value.once('error', reject);
-      this.value.once('readable', () => {
-        this.value.removeListener('end', endListener);
-        this.value.removeListener('error', reject);
-        resolve(this.value.read());
-      });
-    });
   }
 
   async next() {
     this.validateOnNext();
-    if (this._first) {
-      this._first = false;
-      if (this.firstState()) {
+    switch (this._inState) {
+      case states.readable:
+        return this.nextWhenReadable();
+      case states.waiting:
+        return this.nextWhenWaiting();
+      case states.ended:
+        this.completed();
+        return this.endState();
+      case states.first:
+        this._inState = states.waiting;
         return this.firstState();
-      }
-    }
-    const chunck = await this.readWhenReady();
-    if (chunck !== null) {
-      return this.state(chunck);
-    } else if (this.hasEnded) {
-      this._isEmpty = true;
-      this.completed();
-      return this.endState();
-    } else {
-      return this.next();
+      case states.error:
+        throw this._error;
+      default:
+        throw new Error(
+          `Illegal state ${this._inState} in ${this.constructor.name}`,
+        );
     }
   }
 
   validateOnNext() {
     if (this.value._readableState.flowing) {
-      throw new Error('Readable Stream is in flowing mode, data may be lost');
-    }
-    if (this._error) {
-      this.completed();
-      this.hasEnded = true;
-      throw this._error;
+      this.handleError(
+        new Error('Readable Stream is in flowing mode, data may be lost'),
+      );
     }
   }
 
   end() {
-    if (!this.hasEnded) {
+    if (this._inState !== states.ended || this._inState !== states.error) {
       this.debug('Closing stream');
       endStream(this.value);
     }
@@ -262,14 +315,16 @@ class StreamStackElement extends StackElement {
 class ArrayStreamStackElement extends StreamStackElement {
   constructor(...args) {
     super(...args);
-    this._first = true;
     this._secondStateSendt = false;
     this.depth++;
+    if (this._inState !== states.error) {
+      this._inState = states.first;
+    }
   }
 
   endState() {
     this.depth--;
-    return super.state(this.spaceEnd(']'));
+    return super.state(this.spaceEnd(']'), [], true);
   }
 
   firstState() {
@@ -295,11 +350,13 @@ class ArrayStreamStackElement extends StreamStackElement {
 class StringStreamStackElement extends StreamStackElement {
   constructor(value, options, depth) {
     super(value, options, depth);
-    this._first = true;
+    if (this._inState !== states.error) {
+      this._inState = states.first;
+    }
   }
 
   endState() {
-    return super.state('"');
+    return super.state('"', [], true);
   }
 
   firstState() {
@@ -333,26 +390,24 @@ class ArrayObjectStreamStackElement extends ArrayStreamStackElement {
 
 class PromiseStackElement extends StackElement {
   async next() {
-    this.completed();
     const result = await this.value;
-    return this.state(null, [this.newElement(result)]);
+    this.completed();
+    return this.state(null, [this.newElement(result)], true);
   }
 }
 
 class ArrayStackElement extends StackElement {
   constructor(value, options, depth) {
     super(value, options, depth);
-    this._first = true;
-    this.atIndex = 0;
+    this.atIndex = -1;
     this.depth++;
   }
 
   async next() {
-    if (this._first) {
-      this._first = false;
+    if (this.atIndex === -1) {
+      this.atIndex++;
       return this.state(this.spaceStart('['));
     }
-
     const nextElements = [];
     if (this.value.length - 1 > this.atIndex) {
       const to = Math.min(this.value.length - 1, this.atIndex + 1000);
@@ -372,6 +427,7 @@ class ArrayStackElement extends StackElement {
       this.depth--;
       nextElements.push(this.newSpacedElement(']', false));
       this.completed();
+      return this.state(null, nextElements, true);
     }
     return this.state(null, nextElements);
   }
@@ -418,7 +474,7 @@ class ObjectStackElement extends StackElement {
     if (this.isEmpty) {
       this.completed();
       this.depth--;
-      return this.state(this.spaceEnd('}'));
+      return this.state(this.spaceEnd('}'), [], true);
     }
 
     const [key, value] = this.value.shift();

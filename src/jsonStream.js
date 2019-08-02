@@ -1,12 +1,12 @@
 const debug = require('debug')('jetsons:JsonStream');
+const { Readable } = require('stream');
+const Deque = require('double-ended-queue');
+const { inspect } = require('util');
 const {
   StackElement,
   StreamStackElement,
   jsonTypes,
 } = require('./stackElements');
-const { Readable } = require('stream');
-const Deque = require('double-ended-queue');
-const { inspect } = require('util');
 const JsonStreamOptions = require('./jsonStreamOptions');
 
 class JsonStream extends Readable {
