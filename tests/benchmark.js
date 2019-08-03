@@ -31,6 +31,11 @@ const jsonWith4MBStringStream = toPerformanceTest(
   }),
   'jsonWith4MBStringStream',
 );
+const jsonWith4MBRawStream = toPerformanceTest(() => {
+  const stream = createReadStream('tests/data/loremIpsum-4mb.json');
+  stream.jsonType = JsonStream.jsonTypes.raw;
+  return { rawLorem: stream };
+}, 'jsonWith4MBRawStream');
 
 const hugeJsonTest = toPerformanceTest(() => hugeJson, 'hugeJson');
 
@@ -43,6 +48,7 @@ const hugeArray10kTest = toPerformanceTest(() => ha10k, 'hugeArray10k');
 const tests = [
   simpleJsonTest,
   jsonWith4MBStringStream,
+  jsonWith4MBRawStream,
   hugeJsonTest,
   hugeArray10kTest,
   hugeArray100kTest,
