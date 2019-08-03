@@ -13,7 +13,7 @@ The JsonStream is a Readable stream that transforms objects into JSON in a JSON.
 ## Main Features
 
 - Serialize values in a JSON.stringify fashion.
-- Streams can be stringified as different JsonTypes (array, string, raw ).
+- Streams can be stringified as different JsonTypes (array, string, raw).
 - Streams in object mode defaults to JsonType.array.
 - Streams in non-object mode defaults to JsonType.string.
 - Promises are rescursively resolved and emitted as JSON.
@@ -29,6 +29,68 @@ The JsonStream is a Readable stream that transforms objects into JSON in a JSON.
 
 ```bash
 npm install jetsons --save
+```
+
+## Usage
+
+```javascript
+const { JsonStream } = require('jetsons');
+
+const jsonStream = new JsonStream({
+  aPromise: Promise.resolve('A resolved text'),
+  aStringStream: ReadableStream('A streamed value'),
+  array: [1, '2'],
+});
+
+jsonStream.pipe(process.stdout);
+// {
+//   "aPromise": "A resolved text",
+//   "aStringStream": "A streamed value",
+//   "array": [1, "2"]
+// }
+```
+
+### Streams with different **_jsonType`s_**
+
+```javascript
+const { JsonStream } = require('jetsons');
+
+const arrayStream = Readable.from(fibonacciGenerator(1, 9)):
+arrayStream.jsonType = JsonStream.jsonTypes.array;
+
+const rawStream = Readable.from(fibonacciStringGenerator(1, 9)):
+rawStream.jsonType = JsonStream.jsonTypes.raw;
+
+const stringStream = Readable.from(fibonacciGenerator(1, 9)):
+stringStream.jsonType = JsonStream.jsonTypes.string;
+
+const jsonStream = new JsonStream({
+  arrayStream,
+  rawStream,
+  stringStream
+});
+
+jsonStream.pipe(process.stdout);
+// {
+//   "arrayStream": [1, 1, 2, 3, 5, 8, 13, 21],
+//   "rawStream": 1123581321,
+//   "stringStream": "1123581321"
+// }
+```
+
+### Practical example with Express
+
+```javascript
+const { JsonStream } = require('jetsons');
+
+app.get('/resource', (req, res, next) => {
+  const jsonStream = new JsonStream({
+    aValue: 'We define',
+    aExternalHttpRequest: request.get('https://quotes.rest/qod'),
+  })
+  jsonStream.pipe(res),
+  }
+);
 ```
 
 ## API spesification
@@ -76,13 +138,13 @@ Throws a Error ("Readable Stream is in flowing mode, data may be lost") when try
 
 - If a Readable stream has a **_jsonType_** property, the resulting stream output with be stringified as that type. Available values are: **_raw_**, **_string_**, **_object_** and **_array_**. the values are available on **_JsonStream.jsonTypes_**.
 
-- If the **_value_** has a **_toJSON()_** method, it's responsible to define what data will be serialized.
+- If the **_value_** has a **_toJSON_** method, it's responsible to define what data will be serialized.
 
 - **Boolean**, **_Number_**, and **String** objects are converted to the corresponding primitive values during stringification, in accord with the traditional conversion semantics.
 
 - If **_undefined_**, a **_Function_**, or a **_Symbol_** is encountered during conversion it is either omitted (when it is found in an **_object_**) or censored to null (when it is found in an array).
 
-- **_JsonStream()_** can also just return **_undefined_** when passing in "pure" values like JsonStream(function(){}) or JsonStream(undefined).
+- **_JsonStream_** can also just return **_undefined_** when passing in "pure" values like JsonStream(function(){}) or JsonStream(undefined).
 
 - All **_Symbol_**-keyed properties will be completely ignored, even when using the replacer **_function_**.
 
@@ -115,80 +177,6 @@ The space argument may be used to control spacing in the final string.
 
 - If it is a number, successive levels in the stringification will each be indented by this many space characters (up to 10).
 - If it is a string, successive levels will be indented by this string (or the first ten characters of it).
-
-## Usage
-
-```javascript
-const { JsonStream } = require('jetsons');
-
-const jsonStream = new JsonStream({
-  aPromise: Promise.resolve('A resolved text'),
-  aStringStream: ReadableStream('A streamed value'),
-  aObjectStream: ReadableObjectStream({ streamedObject: true }),
-  arr: [1, '2'],
-});
-
-jsonStream.pipe(process.stdout);
-```
-
-Output:
-
-```json
-{
-  "aPromise": "A resolved text",
-  "aStringStream": "A streamed value",
-  "aObjectStream": { "streamedObject": true },
-  "arr": [1, "2"]
-}
-```
-
-### Streams with different **_jsonType`s_**
-
-```javascript
-const { JsonStream } = require('jetsons');
-
-const arrayStream = Readable.from(fibonacciGenerator(1, 9)):
-arrayStream.jsonType = JsonStream.jsonTypes.array;
-
-const rawStream = Readable.from(fibonacciStringGenerator(1, 9)):
-rawStream.jsonType = JsonStream.jsonTypes.raw;
-
-const stringStream = Readable.from(fibonacciGenerator(1, 9)):
-stringStream.jsonType = JsonStream.jsonTypes.string;
-
-const jsonStream = new JsonStream({
-  arrayStream,
-  rawStream,
-  stringStream
-});
-
-jsonStream.pipe(process.stdout);
-```
-
-Output:
-
-```json
-{
-  "arrayStream": [1, 1, 2, 3, 5, 8, 13, 21],
-  "rawStream": 1123581321,
-  "stringStream": "1123581321"
-}
-```
-
-### Practical example with Express
-
-```javascript
-const { JsonStream } = require('jetsons');
-
-app.get('/resource', (req, res, next) => {
-  const jsonStream = new JsonStream({
-    aValue: 'We define',
-    aExternalHttpRequest: request.get('https://quotes.rest/qod'),
-  })
-  jsonStream.pipe(res),
-  }
-);
-```
 
 ## Development
 
