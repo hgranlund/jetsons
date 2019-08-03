@@ -6,12 +6,18 @@ const { StackElement, StreamStackElement } = require('./stackElements');
 const JsonStreamOptions = require('./jsonStreamOptions');
 const { jsonTypes } = require('./constants');
 
+const states = {
+  waiting: Symbol('waiting'),
+  reading: Symbol('reading'),
+  ended: Symbol('ended'),
+  error: Symbol('error'),
+};
+
 class JsonStream extends Readable {
   constructor(value, replacer, space) {
     super();
-    this.hasEnded = false;
     this.stack = new Deque(64);
-
+    this._state = states.waiting;
     const options = new JsonStreamOptions(replacer, space);
     this.addFirstStackElement(options.initReplace(value), options);
 
@@ -36,7 +42,7 @@ class JsonStream extends Readable {
       return false;
     } else if (this.stack.isEmpty()) {
       this.push(null);
-      this.hasEnded = true;
+      this._state = states.ended;
       debug('Completed');
       return false;
     } else {
@@ -45,28 +51,36 @@ class JsonStream extends Readable {
   }
 
   _read() {
-    if (!this.shouldStartToRead()) {
+    if (this.stack.isEmpty()) {
+      this.push(null);
+      this._state = states.ended;
+      debug('Completed');
+    }
+    if (this._state !== states.waiting) {
       return null;
     }
-    this.reading = true;
-    this.processStack().then(() => (this.reading = false));
+    this._state = states.reading;
+    this.processStack()
+      .then(() => (this._state = states.waiting))
+      .catch(error => {
+        this.handleError(error);
+        this._state = states.error;
+      });
   }
 
   async processStack() {
-    try {
-      const toContinue = await this.processTopStackElement();
-      if (toContinue) {
-        return this.processStack();
-      }
-      return toContinue;
-    } catch (error) {
-      this.handleError(error);
-      return false;
+    const toContinue = await this.processTopStackElement();
+    if (toContinue) {
+      return this.processStack();
     }
+    return toContinue;
   }
 
   async processTopStackElement() {
-    if (this.stack.isEmpty()) return false;
+    if (this.stack.isEmpty()) {
+      return false;
+    }
+
     const element = this.stack.peekFront();
     const { next, elements, done } = await element.next();
     if (done) {
@@ -82,14 +96,14 @@ class JsonStream extends Readable {
   }
 
   handleError(error) {
-    this.error = error;
-    this.error.jsonStreamStack = this.stack.toArray();
+    const newError = error;
+    newError.jsonStreamStack = this.stack.toArray();
     debug(
       error,
       '\nWhile processing stack:',
-      inspect(this.error.jsonStreamStack, { maxArrayLength: 15 }),
+      inspect(newError.jsonStreamStack, { maxArrayLength: 15 }),
     );
-    this.hasEnded = true;
+    this._state = states.error;
     setImmediate(() => this.emit('error', error));
   }
 

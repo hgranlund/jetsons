@@ -104,7 +104,7 @@ describe('Jetsons is loaded', () => {
     });
   });
   describe('And processed stream throws error', () => {
-    it('should emit error if porcessed stream emits error', done => {
+    it('should emit error if processed stream emits error', done => {
       const streamWithError = toStream(
         new Promise((resolve, reject) => {
           setTimeout(() => {
