@@ -16,8 +16,9 @@ const states = {
 class JsonStream extends Readable {
   constructor(value, replacer, space) {
     super();
-    this.stack = new Deque(64);
+    this._stack = new Deque(64);
     this._state = states.waiting;
+
     const options = new JsonStreamOptions(replacer, space);
     this.addFirstStackElement(options.initReplace(value), options);
 
@@ -30,28 +31,14 @@ class JsonStream extends Readable {
       typeof value,
     );
     if (shouldReturnUndefined) {
-      this.stack.push(new StackElement(undefined, options));
+      this._stack.push(new StackElement(undefined, options));
     } else {
-      const stackElement = StackElement.factory(value, options);
-      this.stack.push(stackElement);
-    }
-  }
-
-  shouldStartToRead() {
-    if (this.reading || this.hasEnded) {
-      return false;
-    } else if (this.stack.isEmpty()) {
-      this.push(null);
-      this._state = states.ended;
-      debug('Completed');
-      return false;
-    } else {
-      return true;
+      this._stack.push(StackElement.factory(value, options));
     }
   }
 
   _read() {
-    if (this.stack.isEmpty()) {
+    if (this._stack.isEmpty()) {
       this.push(null);
       this._state = states.ended;
       debug('Completed');
@@ -64,40 +51,36 @@ class JsonStream extends Readable {
       .then(() => (this._state = states.waiting))
       .catch(error => {
         this.handleError(error);
-        this._state = states.error;
       });
   }
 
-  async processStack() {
-    const toContinue = await this.processTopStackElement();
-    if (toContinue) {
-      return this.processStack();
+  processStack() {
+    if (this._stack.isEmpty()) {
+      return Promise.resolve(false);
     }
-    return toContinue;
-  }
-
-  async processTopStackElement() {
-    if (this.stack.isEmpty()) {
-      return false;
-    }
-
-    const element = this.stack.peekFront();
-    const { next, elements, done } = await element.next();
-    if (done) {
-      this.stack.shift();
-    }
-    if (elements.length) {
-      this.stack.unshift(...elements);
-    }
-    if (next !== null) {
-      return this.push(next);
-    }
-    return true;
+    const element = this._stack.peekFront();
+    return element.next().then(({ next, elements, done }) => {
+      if (done) {
+        this._stack.shift();
+      }
+      if (elements.length) {
+        this._stack.unshift(...elements);
+      }
+      if (next !== null) {
+        if (this.push(next)) {
+          return this.processStack();
+        } else {
+          return false;
+        }
+      } else {
+        return this.processStack();
+      }
+    });
   }
 
   handleError(error) {
     const newError = error;
-    newError.jsonStreamStack = this.stack.toArray();
+    newError.jsonStreamStack = this._stack.toArray();
     debug(
       error,
       '\nWhile processing stack:',
@@ -109,7 +92,7 @@ class JsonStream extends Readable {
 
   onClose() {
     debug('JsonStream closed');
-    this.stack
+    this._stack
       .toArray()
       .filter(item => item instanceof StreamStackElement)
       .forEach(item => item.end());
