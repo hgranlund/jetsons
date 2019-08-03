@@ -1,12 +1,7 @@
 const debug = require('debug')('jetsons:StackElements');
 const { Stream } = require('stream');
 const { quote, escapeString, endStream } = require('./utils');
-
-const jsonTypes = {
-  string: 'string',
-  array: 'array',
-  raw: 'raw',
-};
+const { jsonTypes } = require('./constants');
 
 const getStreamStackElementClass = value => {
   if (value.jsonType) {

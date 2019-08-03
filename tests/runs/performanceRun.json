@@ -1,47 +1,47 @@
 [
   {
     "name": "simpleJsonTest",
-    "count": 82,
+    "count": 84,
     "mean(ms)": 0.03,
     "deviation(ms)": 0,
-    "ops/sec": 34896.63,
-    "rme": 2.99,
+    "ops/sec": 34771.01,
+    "rme": 2.62,
     "node": "12.7.0"
   },
   {
     "name": "jsonWith4MBStringStream",
     "count": 71,
-    "mean(ms)": 12.1,
-    "deviation(ms)": 4.78,
-    "ops/sec": 82.67,
-    "rme": 9.18,
+    "mean(ms)": 12.33,
+    "deviation(ms)": 6.36,
+    "ops/sec": 81.08,
+    "rme": 12,
     "node": "12.7.0"
   },
   {
     "name": "hugeJson",
     "count": 49,
-    "mean(ms)": 105.98,
-    "deviation(ms)": 4.61,
-    "ops/sec": 9.44,
-    "rme": 1.22,
+    "mean(ms)": 104.98,
+    "deviation(ms)": 6.38,
+    "ops/sec": 9.53,
+    "rme": 1.7,
     "node": "12.7.0"
   },
   {
     "name": "hugeArray10k",
     "count": 55,
-    "mean(ms)": 45.72,
-    "deviation(ms)": 1.99,
-    "ops/sec": 21.87,
-    "rme": 1.15,
+    "mean(ms)": 45.77,
+    "deviation(ms)": 2.38,
+    "ops/sec": 21.85,
+    "rme": 1.37,
     "node": "12.7.0"
   },
   {
     "name": "hugeArray100k",
     "count": 15,
-    "mean(ms)": 457.06,
-    "deviation(ms)": 8.08,
-    "ops/sec": 2.19,
-    "rme": 0.98,
+    "mean(ms)": 449.08,
+    "deviation(ms)": 7.2,
+    "ops/sec": 2.23,
+    "rme": 0.89,
     "node": "12.7.0"
   }
 ]
