@@ -7,7 +7,10 @@
     "test": "jest",
     "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls",
     "lint": "eslint ./src ./tests --fix",
-    "bench": "node tests/benchmark.js"
+    "bench": "node tests/benchmark.js",
+    "doctor": "clinic doctor -- node tests/benchmark",
+    "bubble": "clinic bubble -- node tests/benchmark",
+    "flame": "clinic flame -- node tests/benchmark"
   },
   "keywords": [
     "stream",
@@ -36,6 +39,7 @@
   "devDependencies": {
     "@types/jest": "^24.0.16",
     "benchmark": "^2.1.4",
+    "clinic": "^4.1.0",
     "coveralls": "^3.0.5",
     "eslint": "^6.1.0",
     "jest": "^24.8.0",

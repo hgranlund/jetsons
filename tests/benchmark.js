@@ -3,7 +3,7 @@ const { createReadStream, readFileSync } = require('fs');
 const { devNullStream } = require('./testUtils');
 const { JsonStream } = require('../src');
 const hugeJson = JSON.parse(readFileSync('tests/data/quotes.json'));
-const { compareWithPrev, getResults } = require('./benchmarkUtils');
+const { compareWithPrev } = require('./benchmarkUtils');
 
 const toPerformanceTest = (obj, name) => {
   const test = deferred => {
@@ -57,11 +57,6 @@ tests
     console.log(String(event.target));
   })
   .on('complete', event => {
-    const results = getResults(event);
-    console.table(results);
-    const diff = compareWithPrev(results);
-    if (diff) {
-      console.table(diff);
-    }
+    compareWithPrev(event);
   })
   .run();

@@ -1,21 +1,30 @@
 const { readFileSync, writeFileSync } = require('fs');
+const fs = require('fs');
 
-const compareWithPrev = results => {
+const compareWithPrev = rawResults => {
+  const results = getResults(rawResults);
+  console.log('# Current results:');
+  console.table(results);
+
   writeFileSync(
     `tests/runs/performanceRun-${new Date().toISOString()}.json`,
     JSON.stringify(results),
   );
-  const prevResults = JSON.parse(
-    readFileSync(`tests/runs/performanceRun.json`),
-  );
-  if (prevResults) {
-    const diffResult = results.map(result => {
-      const prevResult = prevResults.find(
-        prevResult => prevResult.name === result.name,
-      );
-      return compareWith(result, prevResult);
-    });
-    console.table(diffResult);
+
+  const path = `tests/runs/performanceRun.json`;
+
+  if (fs.existsSync(path)) {
+    const prevResults = JSON.parse(readFileSync(path));
+    if (prevResults) {
+      console.log('# Previous run:');
+      console.table(prevResults);
+      const diff = Object.entries(results).reduce((diff, [key, result]) => {
+        diff[key] = compareWith(result, prevResults[key]);
+        return diff;
+      }, {});
+      console.log('# Diff (current-previous): ');
+      console.table(diff);
+    }
   }
 };
 
@@ -35,12 +44,11 @@ const compareWith = (newResult = {}, oldResult = {}) => {
 };
 
 const getResults = event => {
-  return event.currentTarget.map(target => {
+  return event.currentTarget.reduce((result, target) => {
     const { hz, stats, name } = target;
     const count = stats.sample.length;
     const { mean, deviation, rme } = stats;
-    return {
-      name,
+    result[name] = {
       count: Number(count),
       'mean(ms)': fixedTo(mean * 1000, 2),
       'deviation(ms)': fixedTo(deviation * 1000, 2),
@@ -48,7 +56,8 @@ const getResults = event => {
       rme: fixedTo(rme, 2),
       node: process.versions.node,
     };
-  });
+    return result;
+  }, {});
 };
 
 module.exports = { compareWithPrev, getResults };
