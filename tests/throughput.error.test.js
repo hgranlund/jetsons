@@ -74,24 +74,6 @@ describe('Jetsons is loaded', () => {
       expect(collector.toJson()).rejects.toEqual(expectedError);
       expect(collector.toObject()).rejects.toEqual(expectedError);
     });
-
-    it('should return error if stream starts flowing during processing', () => {
-      const flowingStream = toStream('valuesdsaødlkjsadølkjsad');
-      const collector = new Collector(flowingStream);
-
-      flowingStream.pipe(devNullStream());
-      expect(collector.toJson()).rejects.toEqual(expectedError);
-      expect(collector.toObject()).rejects.toEqual(expectedError);
-    });
-
-    it('should return error if stream inside structure starts flowing during processing', () => {
-      const flowingStream = toStream('value');
-      const collector = new Collector([flowingStream]);
-
-      flowingStream.pipe(devNullStream());
-      expect(collector.toJson()).rejects.toEqual(expectedError);
-      expect(collector.toObject()).rejects.toEqual(expectedError);
-    });
   });
   describe('And unsupported types are used', () => {
     it('should throw TypeError if a BigInt in encounterd', () => {

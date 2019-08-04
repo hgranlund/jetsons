@@ -270,7 +270,6 @@ class StreamStackElement extends StackElement {
   }
 
   async next() {
-    this.validateOnNext();
     switch (this._state) {
       case states.readable:
         return this.nextWhenReadable();
@@ -288,14 +287,6 @@ class StreamStackElement extends StackElement {
         throw new Error(
           `Illegal state ${this._state} in ${this.constructor.name}`,
         );
-    }
-  }
-
-  validateOnNext() {
-    if (this._value._readableState.flowing) {
-      this.handleError(
-        new Error('Readable Stream is in flowing mode, data may be lost'),
-      );
     }
   }
 
@@ -319,25 +310,26 @@ class ArrayStreamStackElement extends StreamStackElement {
 
   endState() {
     this._depth--;
-    return super.nextState(this.spaceEnd(']'), [], true);
+    return { next: this.spaceEnd(']'), elements: [], done: true };
   }
 
   firstState() {
-    return super.nextState(null, [this.newSpacedElement('[')]);
+    return { next: this.spaceStart('['), elements: [], done: false };
   }
 
   nextState(next, elements = []) {
     if (next === null) {
-      return super.nextState(null, elements);
+      return { next: null, elements, done: false };
     }
     if (!this._secondStateSendt) {
       this._secondStateSendt = true;
-      return super.nextState(quote(next.toString()), elements);
+      return { next: quote(next.toString()), elements, done: false };
     } else {
-      return super.nextState(
-        `${this.spaceStart(',')}${quote(next.toString())}`,
+      return {
+        next: `${this.spaceStart(',')}${quote(next.toString())}`,
         elements,
-      );
+        done: false,
+      };
     }
   }
 }
@@ -351,34 +343,39 @@ class StringStreamStackElement extends StreamStackElement {
   }
 
   endState() {
-    return super.nextState('"', [], true);
+    return { next: '"', elements: [], done: true };
   }
 
   firstState() {
-    return super.nextState(null, [new SimpleStackElement('"')]);
+    return { next: '"', elements: [], done: false };
   }
 
   nextState(next, elements = []) {
-    if (!next) {
-      return super.nextState(null, elements);
+    if (next === null) {
+      return { next: null, elements, done: false };
     }
-    return super.nextState(escapeString(next.toString()), elements);
+    return { next: escapeString(next.toString()), elements, done: false };
   }
 }
 
 class ArrayObjectStreamStackElement extends ArrayStreamStackElement {
-  nextState(next, elements = []) {
+  nextState(next, elements = [], done = false) {
     if (next === null) {
-      return super.nextState(null, elements);
+      return { next: null, elements, done };
     }
     if (this._secondStateSendt) {
-      return super.nextState(null, [
-        this.newSpacedElement(','),
-        this.newElement(next),
-      ]);
+      return {
+        next: null,
+        elements: [this.newSpacedElement(','), this.newElement(next)],
+        done,
+      };
     } else {
       this._secondStateSendt = true;
-      return super.nextState(null, [this.newElement(next)]);
+      return {
+        next: null,
+        elements: [this.newElement(next)],
+        done,
+      };
     }
   }
 }
