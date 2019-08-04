@@ -94,6 +94,11 @@ describe('Jetsons is loaded', () => {
       const expectedJson = JSON.stringify(testJson, null, 5);
       expect(json).toEqual(expectedJson);
     });
+    it('should handle number bigger then 10 as space', async () => {
+      const json = await new Collector(testJson, null, 50).toJson();
+      const expectedJson = JSON.stringify(testJson, null, 50);
+      expect(json).toEqual(expectedJson);
+    });
 
     it('should handle number 5 as space with array stream', async () => {
       const testjsonWithStream = {
