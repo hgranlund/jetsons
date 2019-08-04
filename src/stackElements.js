@@ -257,16 +257,19 @@ class StreamStackElement extends StackElement {
     }
   }
 
-  async nextWhenWaiting() {
+  nextWhenWaiting() {
     const read = this.untilReadable();
     const end = this.untilEnd();
-    try {
-      await Promise.race([read.promise, end.promise]);
-      return this.next();
-    } finally {
-      read.cleanup();
-      end.cleanup();
-    }
+    const cleanUp = () => [read, end].forEach(v => v.cleanup());
+    return Promise.race([read.promise, end.promise])
+      .then(() => {
+        cleanUp();
+        return this.next();
+      })
+      .catch(error => {
+        cleanUp();
+        throw error;
+      });
   }
 
   async next() {
@@ -350,32 +353,33 @@ class StringStreamStackElement extends StreamStackElement {
     return { next: '"', elements: [], done: false };
   }
 
-  nextState(next, elements = []) {
-    if (next === null) {
-      return { next: null, elements, done: false };
+  nextWhenReadable() {
+    let chunck = this._value.read();
+    if (chunck !== null) {
+      return this.nextState(escapeString(chunck.toString()));
+    } else {
+      this._state = states.waiting;
+      return this.next();
     }
-    return { next: escapeString(next.toString()), elements, done: false };
   }
 }
 
 class ArrayObjectStreamStackElement extends ArrayStreamStackElement {
-  nextState(next, elements = [], done = false) {
-    if (next === null) {
-      return { next: null, elements, done };
-    }
-    if (this._secondStateSendt) {
-      return {
-        next: null,
-        elements: [this.newSpacedElement(','), this.newElement(next)],
-        done,
-      };
+  nextWhenReadable() {
+    const chunck = this._value.read();
+    if (chunck !== null) {
+      if (this._secondStateSendt) {
+        return this.nextState(null, [
+          this.newSpacedElement(','),
+          this.newElement(chunck),
+        ]);
+      } else {
+        this._secondStateSendt = true;
+        return this.nextState(null, [this.newElement(chunck)]);
+      }
     } else {
-      this._secondStateSendt = true;
-      return {
-        next: null,
-        elements: [this.newElement(next)],
-        done,
-      };
+      this._state = states.waiting;
+      return this.next();
     }
   }
 }
