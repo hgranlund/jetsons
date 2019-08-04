@@ -19,12 +19,12 @@ class JsonStream extends Readable {
     super();
     this._stack = new Deque(64);
     this._state = states.waiting;
+    debug(`Created`);
 
     const options = new JsonStreamOptions(replacer, space);
     this.addFirstStackElement(options.initReplace(value), options);
 
     this.on('close', () => this.onClose());
-    debug(`Created`);
   }
 
   addFirstStackElement(value, options) {
@@ -38,9 +38,11 @@ class JsonStream extends Readable {
 
   _read(size = 32384) {
     if (this._stack.isEmpty()) {
-      debug('Completed');
-      this._state = states.ended;
-      this.push(null);
+      if (this._state !== states.ended) {
+        this._state = states.ended;
+        this.push(null);
+        debug('Completed');
+      }
     } else if (this._state !== states.waiting) {
       if (this._state === states.reading) {
         this._state = states.readWhileReading;

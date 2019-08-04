@@ -1,6 +1,6 @@
 {
   "name": "jetsons",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Stringifies objects as a Readable stream in a JSON.stringify fashion",
   "main": "src/index.js",
   "scripts": {
