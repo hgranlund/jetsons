@@ -31,57 +31,54 @@ class JsonStream extends Readable {
     const shouldReturnUndefined = ['function', 'undefined', 'symbol'].includes(
       typeof value,
     );
-    if (shouldReturnUndefined) {
-      this._stack.push(new StackElement(undefined, options));
-    } else {
+    if (!shouldReturnUndefined) {
       this._stack.push(StackElement.factory(value, options));
     }
   }
 
-  _read(size) {
-    debug(`Read size: ${size}`);
+  _read(size = 32384) {
     if (this._stack.isEmpty()) {
-      this.push(null);
-      this._state = states.ended;
       debug('Completed');
-    }
-    if (this._state !== states.waiting) {
+      this._state = states.ended;
+      this.push(null);
+    } else if (this._state !== states.waiting) {
       if (this._state === states.reading) {
         this._state = states.readWhileReading;
       }
       return null;
+    } else {
+      this._state = states.reading;
+      this.processStack(size)
+        .then(() => {
+          if (this._state === states.readWhileReading) {
+            setImmediate(() => this._read());
+          }
+          this._state = states.waiting;
+        })
+        .catch(error => {
+          this.handleError(error);
+        });
     }
-    this._state = states.reading;
-    this.processStack()
-      .then(() => {
-        if (this._state === states.readWhileReading) {
-          setImmediate(() => this._read());
-        }
-        this._state = states.waiting;
-      })
-      .catch(error => {
-        this.handleError(error);
-      });
   }
 
-  processStack() {
+  processStack(size) {
     try {
-      if (this._stack.isEmpty()) {
-        return Promise.resolve(false);
+      if (this._stack.isEmpty() || size <= 0) {
+        return Promise.resolve();
       }
       const element = this._stack.peekFront();
       const next = element.next();
       if (next instanceof Promise) {
-        return next.then(n => this.handleNext(n));
+        return next.then(n => this.handleNext(n, size));
       } else {
-        return this.handleNext(next);
+        return this.handleNext(next, size);
       }
     } catch (error) {
       return Promise.reject(error);
     }
   }
 
-  handleNext({ next, elements, done }) {
+  handleNext({ next, elements, done }, size) {
     if (done) {
       this._stack.shift();
     }
@@ -89,14 +86,14 @@ class JsonStream extends Readable {
       this._stack.unshift(...elements);
     }
     if (next !== null) {
-      debug('pushed');
-      if (this.push(next)) {
-        return this.processStack();
+      const buffer = Buffer.from(next);
+      if (this.push(buffer)) {
+        return this.processStack(size - buffer.length);
       } else {
-        return Promise.resolve(false);
+        return Promise.resolve();
       }
     } else {
-      return this.processStack();
+      return this.processStack(size);
     }
   }
 
