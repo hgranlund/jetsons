@@ -7,3 +7,4 @@ tests/runs/performanceRun-2019*
 tmp*
 coverage/*
 .coveralls.yml
+node_trace*

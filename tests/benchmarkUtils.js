@@ -52,7 +52,7 @@ const getResults = event => {
     const { hz, stats, name } = target;
     const count = stats.sample.length;
     const { mean, deviation, rme } = stats;
-    result[name] = {
+    result[name.replace(/\.*/g, '')] = {
       count: Number(count),
       'mean(ms)': fixedTo(mean * 1000, 2),
       'deviation(ms)': fixedTo(deviation * 1000, 2),

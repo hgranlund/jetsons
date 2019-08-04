@@ -178,6 +178,30 @@ The space argument may be used to control spacing in the final string.
 - If it is a number, successive levels in the stringification will each be indented by this many space characters (up to 10).
 - If it is a string, successive levels will be indented by this string (or the first ten characters of it).
 
+## Benchmarks
+
+Benchmarking Jetson's JsonStream against other similar packages with senchmark.js. You will find the script I used [here](https://github.com/hgranlund/benchmarking/blob/master/src/stringifyAJsonStream.js).
+
+```bash
+Jetsons_SimpleJson......................... x 35,717 ops/sec ±3.07% (74 runs sampled)
+JsonStreamStringify_SimpleJson............. x 18,203 ops/sec ±1.26% (83 runs sampled)
+
+Jetsons_JsonWith4MBStringStream............ x 84.74 ops/sec ±2.58% (79 runs sampled)
+JsonStreamStringify_JsonWith4MBStringStream x 84.44 ops/sec ±1.97% (78 runs sampled)
+
+Jetsons_JsonWith4MBRawStream............... x 308 ops/sec ±8.59% (66 runs sampled)
+
+Jetsons_HugeJson........................... x 10.88 ops/sec ±1.63% (55 runs sampled)
+JsonStreamStringify_HugeJson............... x 5.69 ops/sec ±2.14% (32 runs sampled)
+
+Jetsons_ArrayStream10k..................... x 123 ops/sec ±1.08% (82 runs sampled)
+JsonStreamStringify_ArrayStream10k......... x 119 ops/sec ±2.39% (79 runs sampled)
+JSONStream_ArrayStream10k.................. x 19.35 ops/sec ±2.59% (50 runs sampled)
+
+Jetsons_Array10k........................... x 24.79 ops/sec ±2.72% (62 runs sampled)
+JsonStreamStringify_Array10k............... x 11.63 ops/sec ±1.36% (58 runs sampled)
+```
+
 ## Development
 
 ### Test
@@ -188,10 +212,10 @@ Run tests by:
 npm test
 ```
 
-Run performance tests by:
+Run benchmarks by:
 
 ```bash
-npm run perf
+npm run bench
 ```
 
 ### Debug
