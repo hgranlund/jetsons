@@ -69,7 +69,7 @@ class SimpleStackElement {
     return value;
   }
 
-  async next() {
+  next() {
     return { next: this._value, elements: [], done: true };
   }
 }
@@ -117,7 +117,7 @@ class StackElement extends SimpleStackElement {
     return { next, elements, done };
   }
 
-  async next() {
+  next() {
     this.completed();
     return this.nextState(this._value, [], true);
   }
@@ -272,7 +272,7 @@ class StreamStackElement extends StackElement {
       });
   }
 
-  async next() {
+  next() {
     switch (this._state) {
       case states.readable:
         return this.nextWhenReadable();
@@ -399,7 +399,7 @@ class ArrayStackElement extends StackElement {
     this._depth++;
   }
 
-  async next() {
+  next() {
     if (this.atIndex === -1) {
       this.atIndex++;
       return this.nextState(this.spaceStart('['));
@@ -462,7 +462,7 @@ class ObjectStackElement extends StackElement {
     return value !== undefined && type !== 'function' && type !== 'symbol';
   }
 
-  async next() {
+  next() {
     if (this._first) {
       this._first = false;
       return this.nextState(this.spaceStart('{'));

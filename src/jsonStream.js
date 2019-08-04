@@ -8,6 +8,7 @@ const { jsonTypes } = require('./constants');
 
 const states = {
   waiting: Symbol('waiting'),
+  readWhileReading: Symbol('readWhileReading'),
   reading: Symbol('reading'),
   ended: Symbol('ended'),
   error: Symbol('error'),
@@ -37,45 +38,66 @@ class JsonStream extends Readable {
     }
   }
 
-  _read() {
+  _read(size) {
+    debug(`Read size: ${size}`);
     if (this._stack.isEmpty()) {
       this.push(null);
       this._state = states.ended;
       debug('Completed');
     }
     if (this._state !== states.waiting) {
+      if (this._state === states.reading) {
+        this._state = states.readWhileReading;
+      }
       return null;
     }
     this._state = states.reading;
     this.processStack()
-      .then(() => (this._state = states.waiting))
+      .then(() => {
+        if (this._state === states.readWhileReading) {
+          setImmediate(() => this._read());
+        }
+        this._state = states.waiting;
+      })
       .catch(error => {
         this.handleError(error);
       });
   }
 
   processStack() {
-    if (this._stack.isEmpty()) {
-      return Promise.resolve(false);
-    }
-    const element = this._stack.peekFront();
-    return element.next().then(({ next, elements, done }) => {
-      if (done) {
-        this._stack.shift();
+    try {
+      if (this._stack.isEmpty()) {
+        return Promise.resolve(false);
       }
-      if (elements.length) {
-        this._stack.unshift(...elements);
-      }
-      if (next !== null) {
-        if (this.push(next)) {
-          return this.processStack();
-        } else {
-          return false;
-        }
+      const element = this._stack.peekFront();
+      const next = element.next();
+      if (next instanceof Promise) {
+        return next.then(n => this.handleNext(n));
       } else {
-        return this.processStack();
+        return this.handleNext(next);
       }
-    });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+
+  handleNext({ next, elements, done }) {
+    if (done) {
+      this._stack.shift();
+    }
+    if (elements.length) {
+      this._stack.unshift(...elements);
+    }
+    if (next !== null) {
+      debug('pushed');
+      if (this.push(next)) {
+        return this.processStack();
+      } else {
+        return Promise.resolve(false);
+      }
+    } else {
+      return this.processStack();
+    }
   }
 
   handleError(error) {
