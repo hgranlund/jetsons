@@ -16,6 +16,7 @@
       "name": "Launch Program",
       "program": "${workspaceFolder}/tests/benchmark.js",
       "outputCapture": "std"
+      // "args": ["write"]
     },
     {
       "type": "node",

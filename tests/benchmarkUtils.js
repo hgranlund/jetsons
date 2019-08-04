@@ -26,6 +26,10 @@ const compareWithPrev = rawResults => {
       console.table(diff);
     }
   }
+  if (process.argv[2] === 'write') {
+    writeFileSync(`tests/runs/performanceRun.json`, JSON.stringify(results));
+    console.log('Previous result updated');
+  }
 };
 
 const fixedTo = (value, descimals) => parseFloat(value.toFixed(descimals));

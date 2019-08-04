@@ -1,13 +1,12 @@
 const Benchmark = require('benchmark');
 const { createReadStream, readFileSync } = require('fs');
-const { devNullStream } = require('./testUtils');
-const { JsonStream } = require('../src');
-const hugeJson = JSON.parse(readFileSync('tests/data/quotes.json'));
+const { devNullStream, toStream } = require('./testUtils');
 const { compareWithPrev } = require('./benchmarkUtils');
+const { JsonStream } = require('../src');
 
-const toPerformanceTest = (obj, name) => {
+const toPerformanceTest = (obj, name, StreamClass = JsonStream) => {
   const test = deferred => {
-    const stream = new JsonStream(obj());
+    const stream = new StreamClass(obj());
     stream
       .on('end', () => deferred.resolve())
       .on('error', () => deferred.resolve());
@@ -22,41 +21,56 @@ const simpleJsonTest = toPerformanceTest(
     test2: 'test',
     test3: [1, 2, 3],
   }),
-  'simpleJsonTest',
+  'simpleJson',
 );
 
-const jsonWith4MBStringStream = toPerformanceTest(
+const jsonWith4MBStringStreamJsonStream = toPerformanceTest(
   () => ({
-    lorem: createReadStream('tests/data/loremIpsum-4mb.txt'),
+    lorem: createReadStream('./tests/data/loremIpsum-4mb.txt'),
   }),
   'jsonWith4MBStringStream',
 );
-const jsonWith4MBRawStream = toPerformanceTest(() => {
-  const stream = createReadStream('tests/data/loremIpsum-4mb.json');
+
+const jsonWith4MBRawStreamJsonStream = toPerformanceTest(() => {
+  const stream = createReadStream('./tests/data/loremIpsum-4mb.json');
   stream.jsonType = JsonStream.jsonTypes.raw;
   return { rawLorem: stream };
 }, 'jsonWith4MBRawStream');
 
+const hugeJson = JSON.parse(readFileSync('tests/data/quotes.json'));
 const hugeJsonTest = toPerformanceTest(() => hugeJson, 'hugeJson');
 
-const ha100k = Array.from(Array.from(new Array(100000)));
-const hugeArray100kTest = toPerformanceTest(() => ha100k, 'hugeArray100k');
+const ha10k = new Array(10000).fill('sd');
+const array10kTest = toPerformanceTest(() => ha10k, 'array10k');
 
-const ha10k = Array.from(Array.from(new Array(10000)));
-const hugeArray10kTest = toPerformanceTest(() => ha10k, 'hugeArray10k');
+const arrayStream10kTest = toPerformanceTest(
+  () => toStream(ha10k, null, { objectMode: false }),
+  'arrayStream10k',
+);
+
+const arrayObjectStream10kTest = toPerformanceTest(
+  () => toStream(ha10k, null, { objectMode: true }),
+  'arrayObjectStream10k',
+);
 
 const tests = [
   simpleJsonTest,
-  jsonWith4MBStringStream,
-  jsonWith4MBRawStream,
+  jsonWith4MBStringStreamJsonStream,
+  jsonWith4MBRawStreamJsonStream,
   hugeJsonTest,
-  hugeArray10kTest,
-  hugeArray100kTest,
+  arrayStream10kTest,
+  array10kTest,
+  arrayObjectStream10kTest,
 ];
+
+const longestName = tests.reduce(
+  (longest, { name }) => Math.max(longest, name.length),
+  0,
+);
 
 tests
   .reduce((suite, { name, test }) => {
-    suite.add(name, test, { defer: true });
+    suite.add(name.padEnd(longestName, '.'), test, { defer: true });
     return suite;
   }, new Benchmark.Suite())
   .on('cycle', function(event) {

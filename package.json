@@ -8,6 +8,7 @@
     "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls",
     "lint": "eslint ./src ./tests --fix",
     "bench": "node tests/benchmark.js",
+    "bench:w": "node tests/benchmark.js write",
     "doctor": "clinic doctor -- node tests/benchmark",
     "bubble": "clinic bubble -- node tests/benchmark",
     "flame": "clinic flame -- node tests/benchmark"
