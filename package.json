@@ -1,6 +1,6 @@
 {
   "name": "jetsons",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Stringifies objects as a Readable stream in a JSON.stringify fashion",
   "main": "src/index.js",
   "scripts": {
@@ -39,9 +39,9 @@
   },
   "devDependencies": {
     "benchmark": "^2.1.4",
-    "clinic": "^4.1.0",
-    "coveralls": "^3.0.6",
-    "eslint": "^6.5.0",
+    "clinic": "^5.0.0",
+    "coveralls": "^3.0.7",
+    "eslint": "^6.6.0",
     "jest": "^24.9.0",
     "jest-extended": "^0.11.2"
   },
