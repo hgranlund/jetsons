@@ -1,6 +1,6 @@
 const debug = require('debug')('jetsons:JsonStream');
 const { Readable } = require('stream');
-const Deque = require('double-ended-queue');
+const Denque = require('denque');
 const { inspect } = require('util');
 const { StackElement, StreamStackElement } = require('./stackElements');
 const JsonStreamOptions = require('./jsonStreamOptions');
@@ -17,7 +17,7 @@ const states = {
 class JsonStream extends Readable {
   constructor(value, replacer, space) {
     super();
-    this._stack = new Deque(64);
+    this._stack = new Denque();
     this._state = states.waiting;
     debug(`Created`);
 
@@ -85,7 +85,7 @@ class JsonStream extends Readable {
       this._stack.shift();
     }
     if (elements.length) {
-      this._stack.unshift(...elements);
+      elements.reverse().forEach(element => this._stack.unshift(element));
     }
     if (next !== null) {
       const buffer = Buffer.from(next);
