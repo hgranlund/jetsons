@@ -206,10 +206,16 @@ class StreamStackElement extends StackElement {
 
   untilReadable() {
     let eventListener = null;
+    let cleanUpReject = () => { };
     const promise = new Promise((resolve, reject) => {
+      cleanUpReject = () => {
+        if (this._rejections.has(reject)) {
+          this._rejections.delete(reject)
+        }
+      };
       eventListener = () => {
         this._state = states.readable;
-        this._rejections.delete(reject);
+        cleanUpReject();
         eventListener = null;
         resolve();
       };
@@ -218,6 +224,7 @@ class StreamStackElement extends StackElement {
     });
 
     const cleanup = () => {
+      cleanUpReject();
       if (eventListener == null) return;
       this._value.removeListener('readable', eventListener);
     };
@@ -227,11 +234,16 @@ class StreamStackElement extends StackElement {
 
   untilEnd() {
     let eventListener = null;
-
+    let cleanUpReject = () => { };
     const promise = new Promise((resolve, reject) => {
+      cleanUpReject = () => {
+        if (this._rejections.has(reject)) {
+          this._rejections.delete(reject)
+        }
+      };
       eventListener = () => {
         this._state = states.ended;
-        this._rejections.delete(reject);
+        cleanUpReject();
         eventListener = null;
         resolve();
       };
@@ -240,6 +252,7 @@ class StreamStackElement extends StackElement {
     });
 
     const cleanup = () => {
+      cleanUpReject();
       if (eventListener == null) return;
       this._value.removeListener('end', eventListener);
     };
