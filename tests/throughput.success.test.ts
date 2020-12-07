@@ -1,16 +1,17 @@
-require('jest-extended');
-const { Readable } = require('stream');
-const { legalSenarios } = require('./testSenarios');
-const { JsonStream, Collector } = require('../src');
-const { toStream } = require('./testUtils');
+import 'jest-extended';
+import { Readable } from 'stream';
+import { Collector, JsonStream } from '../src';
+import { getTestScenarios } from './testScenarios';
+import { toStream } from './testUtils';
 
+const legalScenarios = getTestScenarios();
 describe('Jetsons is loaded', () => {
-  describe.each(legalSenarios)(
-    'and a JsonStream on created on senario[%#]: %s',
-    (name, senario) => {
-      let stream;
+  describe.each(legalScenarios)(
+    'and a JsonStream on created on scenario[%#]: %s',
+    (name, scenario) => {
+      let stream: Readable;
       beforeAll(() => {
-        const { input, replacer, space } = senario;
+        const { input, replacer, space } = scenario;
         stream = new JsonStream(input(), replacer, space);
       });
 
@@ -19,35 +20,32 @@ describe('Jetsons is loaded', () => {
       });
 
       it('should not have started/ended', () => {
-        expect(stream._readableState.ended).toBeFalsy();
-        expect(stream._readableState.flowing).toBeFalsy();
+        expect(stream.readableEnded).toBeFalsy();
+        expect(stream.readableFlowing).toBeFalsy();
       });
     },
   );
 
-  describe.each(legalSenarios)(
-    'and toObject on senario[%#]: %s',
-    (_, senario) => {
-      let object;
+  describe.each(legalScenarios)('and toObject on scenario[%#]: %s', (_, scenario) => {
+    let object;
 
-      beforeAll(async done => {
-        const { input, replacer, space } = senario;
-        const collector = new Collector(input(), replacer, space);
-        object = await collector.toObject();
-        done();
-      });
+    beforeAll(async (done) => {
+      const { input, replacer, space } = scenario;
+      const collector = new Collector(input(), replacer, space);
+      object = await collector.toObject();
+      done();
+    });
 
-      it('should return a expected output', () => {
-        expect(object).toEqual(senario.expectedResult);
-      });
-    },
-  );
+    it('should return a expected output', () => {
+      expect(object).toEqual(scenario.expectedResult);
+    });
+  });
 
   describe('and toJsonString on a value', () => {
     let value;
     let jsonString;
 
-    beforeEach(async done => {
+    beforeEach(async (done) => {
       value = { aKeyWithArray: [1, true, 'aSting'] };
       const collector = new Collector(value, null, '');
       try {
@@ -69,7 +67,7 @@ describe('Jetsons is loaded', () => {
       depth1: [1, 2, 3, 4, 5, 6, 7],
       nestedJson: { depth2: 2, nestedJson: { depth3: 3 } },
     };
-    it('should default to emtpy space', async () => {
+    it('should default to empty space', async () => {
       const json = await new Collector(testJson).toJson();
       const expectedJson = JSON.stringify(testJson);
       expect(json).toEqual(expectedJson);

@@ -8,3 +8,5 @@ tmp*
 coverage/*
 .coveralls.yml
 node_trace*
+dist/
+distTest/

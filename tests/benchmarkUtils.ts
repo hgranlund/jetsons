@@ -1,7 +1,8 @@
-const { readFileSync, writeFileSync } = require('fs');
-const fs = require('fs');
+// tslint:disable: no-console
+import { Event } from 'benchmark';
+import fs, { readFileSync, writeFileSync } from 'fs';
 
-const compareWithPrev = rawResults => {
+export const compareWithPrev = (rawResults: Event) => {
   const results = getResults(rawResults);
   console.log('# Current results:');
   console.table(results);
@@ -14,16 +15,16 @@ const compareWithPrev = rawResults => {
   const path = `tests/runs/performanceRun.json`;
 
   if (fs.existsSync(path)) {
-    const prevResults = JSON.parse(readFileSync(path));
+    const prevResults = JSON.parse(readFileSync(path).toString());
     if (prevResults) {
       console.log('# Previous run:');
       console.table(prevResults);
-      const diff = Object.entries(results).reduce((diff, [key, result]) => {
+      const theDiff = Object.entries(results).reduce((diff, [key, result]) => {
         diff[key] = compareWith(result, prevResults[key]);
         return diff;
       }, {});
       console.log('# Diff (current-previous): ');
-      console.table(diff);
+      console.table(theDiff);
     }
   }
   if (process.argv[2] === 'write') {
@@ -32,10 +33,10 @@ const compareWithPrev = rawResults => {
   }
 };
 
-const fixedTo = (value, descimals) => parseFloat(value.toFixed(descimals));
+const fixedTo = (value: number, decimals: number) => parseFloat(value.toFixed(decimals));
 
 const compareWith = (newResult = {}, oldResult = {}) => {
-  return Object.entries(newResult).reduce((result, [key, value]) => {
+  return Object.entries(newResult).reduce((result, [key, value]: [string, number]) => {
     if (['name', 'node'].includes(key)) {
       result[key] = value;
     } else if (key in oldResult) {
@@ -47,7 +48,7 @@ const compareWith = (newResult = {}, oldResult = {}) => {
   }, {});
 };
 
-const getResults = event => {
+export const getResults = (event: any) => {
   return event.currentTarget.reduce((result, target) => {
     const { hz, stats, name } = target;
     const count = stats.sample.length;
@@ -63,5 +64,3 @@ const getResults = event => {
     return result;
   }, {});
 };
-
-module.exports = { compareWithPrev, getResults };
