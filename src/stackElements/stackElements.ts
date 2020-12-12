@@ -1,98 +1,13 @@
 // tslint:disable: max-classes-per-file
-
 import debugInit from 'debug';
 import { Readable } from 'stream';
-import { JsonStream } from './jsonStream';
-import { JsonStreamOptions } from './jsonStreamOptions';
-import { JsonStreamType } from './streamType';
-import { endStream, escapeString, quote } from './utils';
-
+import { JsonStreamOptions } from '../jsonStreamOptions';
+import { endStream, escapeString, quote } from '../utils';
+import { BaseStackElement } from './BaseStackElement';
+import { getStackElementClass } from './stackElementFactory';
+import { NextStackElement, StackElementType } from './types';
+import { noop } from './utils';
 const debug = debugInit('jetsons:StackElements');
-
-// tslint:disable-next-line: no-empty
-const noop = () => {};
-
-const getStreamStackElementClass = (value: JsonStream | Readable) => {
-  if ('jsonStreamType' in value && value.jsonStreamType) {
-    switch (value.jsonStreamType) {
-      case JsonStreamType.ARRAY:
-        if (value.readableObjectMode) {
-          return ArrayObjectStreamStackElement;
-        } else {
-          return ArrayStreamStackElement;
-        }
-      case JsonStreamType.RAW:
-        return StreamStackElement;
-      case JsonStreamType.STRING:
-        return StringStreamStackElement;
-      default:
-        break;
-    }
-  }
-  if (value.readableObjectMode) {
-    return ArrayObjectStreamStackElement;
-  } else {
-    return StringStreamStackElement;
-  }
-};
-
-const getStackElementClass = (value: any) => {
-  switch (typeof value) {
-    case 'number':
-      return NumberStackElement;
-    case 'boolean':
-      return BooleanStackElement;
-    case 'string':
-      return StringStackElement;
-    case 'undefined':
-      return NullStackElement;
-    case 'object':
-      if (value === null) return NullStackElement;
-      if (Array.isArray(value)) return ArrayStackElement;
-      if (value instanceof Readable) {
-        return getStreamStackElementClass(value);
-      }
-      if (value instanceof Promise || typeof value.then === 'function') {
-        return PromiseStackElement;
-      }
-      return ObjectStackElement;
-    case 'symbol':
-      return NullStackElement;
-    case 'function':
-      return NullStackElement;
-    case 'bigint':
-      throw new Error(`BigInt value can't be serialized in JSON`);
-    default:
-      throw new Error(`type ${typeof value} - ${value} value can't be serialized in JSON`);
-  }
-};
-
-export type NextStackElement = {
-  next: string | Buffer;
-  elements: BaseStackElement[];
-  done: boolean;
-};
-
-export type PrimetivElementType = {
-  next: () => NextStackElement | Promise<NextStackElement>;
-};
-
-export type StackElementType = PrimetivElementType | StreamStackElement | BaseStackElement;
-
-class BaseStackElement {
-  protected value: any;
-  constructor(value: any, options = {} as JsonStreamOptions) {
-    this.value = this.parseValue(value, options);
-  }
-
-  parseValue(value: any, _options?: JsonStreamOptions): any {
-    return value;
-  }
-
-  async next(): Promise<NextStackElement> {
-    return { next: this.value, elements: [], done: true };
-  }
-}
 
 export class StackElement extends BaseStackElement {
   private options: JsonStreamOptions;
@@ -148,49 +63,113 @@ export class StackElement extends BaseStackElement {
   }
 }
 
-class StringStackElement extends BaseStackElement {
-  protected value: string;
+export class ObjectStackElement extends StackElement {
+  protected _first: boolean;
+  protected value: [any, any][];
 
-  parseValue(value: string): string {
-    return quote(value);
+  constructor(value: Record<any, any>, options: JsonStreamOptions, depth: number) {
+    super(value, options, depth);
+    this._first = true;
+    this.depth++;
   }
-}
 
-class BooleanStackElement extends BaseStackElement {
-  protected value: string;
-
-  parseValue(aBoolean: boolean): 'true' | 'false' {
-    return aBoolean ? 'true' : 'false';
+  get isEmpty() {
+    return !this.value.length;
   }
-}
-class NullStackElement extends BaseStackElement {
-  protected value: string;
 
-  parseValue(): string {
-    return 'null';
-  }
-}
-
-class NumberStackElement extends BaseStackElement {
-  protected value: string;
-
-  parseValue(value: number): string {
-    if (Number.isFinite(value)) {
-      return String(value);
-    } else {
-      return 'null';
+  parseValue(value: any, options: JsonStreamOptions): [string, unknown][] {
+    let entries = Object.entries(value);
+    const replacer = options?.replacer;
+    if (typeof replacer === 'function') {
+      entries = entries.map(([key, entryValue]) => [key, replacer(key, entryValue)]);
     }
+
+    if (Array.isArray(replacer)) {
+      entries = entries.filter(([key]) => replacer.includes(key));
+    }
+
+    return entries.filter(([, entryValue]) => this.shouldValueBeStringified(entryValue));
+  }
+
+  shouldValueBeStringified(value: any): boolean {
+    const type = typeof value;
+    return value !== undefined && type !== 'function' && type !== 'symbol';
+  }
+
+  async next(): Promise<NextStackElement> {
+    if (this._first) {
+      this._first = false;
+      return this.nextState(this.spaceStart('{'));
+    }
+    if (this.isEmpty) {
+      this.completed();
+      this.depth--;
+      return this.nextState(this.spaceEnd('}'), [], true);
+    }
+
+    const [key, value] = this.value.shift();
+    const next = `"${key}":${this.spaceEnd('') ? ' ' : ''}`;
+    const nextElements = [this.newElement(value)];
+
+    if (!this.isEmpty) {
+      nextElements.push(this.newSpacedElement(','));
+    }
+    return this.nextState(next, nextElements);
   }
 }
 
-enum StreamStackElementState {
+export class PromiseStackElement extends StackElement {
+  async next(): Promise<NextStackElement> {
+    const result = await this.value;
+    this.completed();
+    return this.nextState(null, [this.newElement(result)], true);
+  }
+}
+
+export class ArrayStackElement extends StackElement {
+  atIndex = -1;
+  constructor(value: any, options: JsonStreamOptions, depth: number) {
+    super(value, options, depth);
+    this.depth++;
+  }
+
+  async next(): Promise<NextStackElement> {
+    if (this.atIndex === -1) {
+      this.atIndex++;
+      return this.nextState(this.spaceStart('['));
+    }
+    const nextElements = [];
+    if (this.value.length - 1 > this.atIndex) {
+      const to = Math.min(this.value.length - 1, this.atIndex + 1000);
+      while (this.atIndex < to) {
+        nextElements.push(this.newElement(this.value[this.atIndex]));
+        nextElements.push(this.newSpacedElement(','));
+        this.atIndex++;
+      }
+    }
+
+    if (this.value.length - 1 === this.atIndex) {
+      nextElements.push(this.newElement(this.value[this.atIndex]));
+      this.atIndex++;
+    }
+
+    if (this.value.length === this.atIndex) {
+      this.depth--;
+      nextElements.push(this.newSpacedElement(']', false));
+      this.completed();
+      return this.nextState(null, nextElements, true);
+    }
+    return this.nextState(null, nextElements);
+  }
+}
+
+export enum StreamStackElementState {
   FIRST,
   WAITING,
   READABLE,
   ENDED,
   ERROR,
 }
-
 export class StreamStackElement extends StackElement {
   protected value: Readable;
 
@@ -261,8 +240,7 @@ export class StreamStackElement extends StackElement {
 
   untilEnd(): { cleanup: () => void; promise: Promise<void> } {
     let eventListener = null;
-    // tslint:disable-next-line: no-empty
-    let cleanUpReject = () => {};
+    let cleanUpReject = noop;
     const promise = new Promise<void>((resolve, reject) => {
       cleanUpReject = () => {
         if (this.rejections.has(reject)) {
@@ -339,7 +317,7 @@ export class StreamStackElement extends StackElement {
   }
 }
 
-class ArrayStreamStackElement extends StreamStackElement {
+export class ArrayStreamStackElement extends StreamStackElement {
   protected _secondStateSent: boolean;
   constructor(value: any, options: JsonStreamOptions, depth: number) {
     super(value, options, depth);
@@ -359,7 +337,7 @@ class ArrayStreamStackElement extends StreamStackElement {
     return { next: this.spaceStart('['), elements: [], done: false };
   }
 
-  nextState(next, elements = []): NextStackElement {
+  nextState(next: string, elements = []): NextStackElement {
     if (next === null) {
       return { next: null, elements, done: false };
     }
@@ -376,7 +354,24 @@ class ArrayStreamStackElement extends StreamStackElement {
   }
 }
 
-class StringStreamStackElement extends StreamStackElement {
+export class ArrayObjectStreamStackElement extends ArrayStreamStackElement {
+  async nextWhenReadable(): Promise<NextStackElement> {
+    const chunk = this.value.read();
+    if (chunk !== null) {
+      if (this._secondStateSent) {
+        return this.nextState(null, [this.newSpacedElement(','), this.newElement(chunk)]);
+      } else {
+        this._secondStateSent = true;
+        return this.nextState(null, [this.newElement(chunk)]);
+      }
+    } else {
+      this.state = StreamStackElementState.WAITING;
+      return this.next();
+    }
+  }
+}
+
+export class StringStreamStackElement extends StreamStackElement {
   constructor(value: Readable, options: JsonStreamOptions, depth: number) {
     super(value, options, depth);
     if (this.state !== StreamStackElementState.ERROR) {
@@ -400,122 +395,5 @@ class StringStreamStackElement extends StreamStackElement {
       this.state = StreamStackElementState.WAITING;
       return this.next();
     }
-  }
-}
-
-class ArrayObjectStreamStackElement extends ArrayStreamStackElement {
-  async nextWhenReadable(): Promise<NextStackElement> {
-    const chunk = this.value.read();
-    if (chunk !== null) {
-      if (this._secondStateSent) {
-        return this.nextState(null, [this.newSpacedElement(','), this.newElement(chunk)]);
-      } else {
-        this._secondStateSent = true;
-        return this.nextState(null, [this.newElement(chunk)]);
-      }
-    } else {
-      this.state = StreamStackElementState.WAITING;
-      return this.next();
-    }
-  }
-}
-
-class PromiseStackElement extends StackElement {
-  async next(): Promise<NextStackElement> {
-    const result = await this.value;
-    this.completed();
-    return this.nextState(null, [this.newElement(result)], true);
-  }
-}
-
-class ArrayStackElement extends StackElement {
-  atIndex = -1;
-  constructor(value: any, options: JsonStreamOptions, depth: number) {
-    super(value, options, depth);
-    this.depth++;
-  }
-
-  async next(): Promise<NextStackElement> {
-    if (this.atIndex === -1) {
-      this.atIndex++;
-      return this.nextState(this.spaceStart('['));
-    }
-    const nextElements = [];
-    if (this.value.length - 1 > this.atIndex) {
-      const to = Math.min(this.value.length - 1, this.atIndex + 1000);
-      while (this.atIndex < to) {
-        nextElements.push(this.newElement(this.value[this.atIndex]));
-        nextElements.push(this.newSpacedElement(','));
-        this.atIndex++;
-      }
-    }
-
-    if (this.value.length - 1 === this.atIndex) {
-      nextElements.push(this.newElement(this.value[this.atIndex]));
-      this.atIndex++;
-    }
-
-    if (this.value.length === this.atIndex) {
-      this.depth--;
-      nextElements.push(this.newSpacedElement(']', false));
-      this.completed();
-      return this.nextState(null, nextElements, true);
-    }
-    return this.nextState(null, nextElements);
-  }
-}
-
-class ObjectStackElement extends StackElement {
-  protected _first: boolean;
-  protected value: [any, any][];
-
-  constructor(value: Record<any, any>, options: JsonStreamOptions, depth: number) {
-    super(value, options, depth);
-    this._first = true;
-    this.depth++;
-  }
-
-  get isEmpty() {
-    return !this.value.length;
-  }
-
-  parseValue(value: any, options: JsonStreamOptions): [string, unknown][] {
-    let entries = Object.entries(value);
-    const replacer = options?.replacer;
-    if (typeof replacer === 'function') {
-      entries = entries.map(([key, entryValue]) => [key, replacer(key, entryValue)]);
-    }
-
-    if (Array.isArray(replacer)) {
-      entries = entries.filter(([key]) => replacer.includes(key));
-    }
-
-    return entries.filter(([, entryValue]) => this.shouldValueBeStringified(entryValue));
-  }
-
-  shouldValueBeStringified(value: any): boolean {
-    const type = typeof value;
-    return value !== undefined && type !== 'function' && type !== 'symbol';
-  }
-
-  async next(): Promise<NextStackElement> {
-    if (this._first) {
-      this._first = false;
-      return this.nextState(this.spaceStart('{'));
-    }
-    if (this.isEmpty) {
-      this.completed();
-      this.depth--;
-      return this.nextState(this.spaceEnd('}'), [], true);
-    }
-
-    const [key, value] = this.value.shift();
-    const next = `"${key}":${this.spaceEnd('') ? ' ' : ''}`;
-    const nextElements = [this.newElement(value)];
-
-    if (!this.isEmpty) {
-      nextElements.push(this.newSpacedElement(','));
-    }
-    return this.nextState(next, nextElements);
   }
 }
