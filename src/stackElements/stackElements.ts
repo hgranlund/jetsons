@@ -4,7 +4,7 @@ import { Readable } from 'stream';
 import { JsonStreamOptions } from '../jsonStreamOptions';
 import { endStream, escapeString, quote } from '../utils';
 import { BaseStackElement } from './BaseStackElement';
-import { getStackElementClass } from './stackElementFactory';
+import { getStackElement } from './stackElementFactory';
 import { NextStackElement, StackElementType } from './types';
 import { noop } from './utils';
 const debug = debugInit('jetsons:StackElements');
@@ -25,8 +25,7 @@ export class StackElement extends BaseStackElement {
     if (value && value.toJSON instanceof Function) {
       value = value.toJSON();
     }
-    const StackElementClass = getStackElementClass(value);
-    return new StackElementClass(value, options, depth);
+    return getStackElement(value, options, depth);
   }
 
   spaceStart(char: string): string {

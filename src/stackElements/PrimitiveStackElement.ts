@@ -1,37 +1,22 @@
 import { quote } from '../utils';
-import { BaseStackElement } from './BaseStackElement';
+import { StackElementType } from './types';
 
-export class StringStackElement extends BaseStackElement {
-  protected value: string;
+const toStackElement = (nextValue: string): StackElementType => {
+  const next = () => {
+    return { next: nextValue, elements: [], done: true };
+  };
+  return { next };
+};
 
-  parseValue(value: string): string {
-    return quote(value);
-  }
-}
-
-export class BooleanStackElement extends BaseStackElement {
-  protected value: string;
-
-  parseValue(aBoolean: boolean): 'true' | 'false' {
-    return aBoolean ? 'true' : 'false';
-  }
-}
-export class NullStackElement extends BaseStackElement {
-  protected value: string;
-
-  parseValue(): string {
-    return 'null';
-  }
-}
-
-export class NumberStackElement extends BaseStackElement {
-  protected value: string;
-
-  parseValue(value: number): string {
-    if (Number.isFinite(value)) {
-      return String(value);
-    } else {
-      return 'null';
-    }
-  }
-}
+export const toStringStackElement = (value: string) => {
+  return toStackElement(quote(value));
+};
+export const toBooleanStackElement = (aBoolean: boolean) => {
+  return toStackElement(aBoolean ? 'true' : 'false');
+};
+export const toNumberStackElement = (aNumber: number) => {
+  return toStackElement(Number.isFinite(aNumber) ? String(aNumber) : 'null');
+};
+export const toNullStackElement = () => {
+  return toStackElement('null');
+};

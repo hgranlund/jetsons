@@ -1,5 +1,13 @@
 import { Readable } from 'stream';
+import { JsonStream } from '../jsonStream';
+import { JsonStreamOptions } from '../jsonStreamOptions';
 import { JsonStreamType } from '../streamType';
+import {
+  toBooleanStackElement,
+  toNullStackElement,
+  toNumberStackElement,
+  toStringStackElement,
+} from './PrimitiveStackElement';
 import {
   ArrayObjectStreamStackElement,
   ArrayStackElement,
@@ -9,37 +17,31 @@ import {
   StreamStackElement,
   StringStreamStackElement,
 } from './stackElements';
-import {
-  BooleanStackElement,
-  NullStackElement,
-  NumberStackElement,
-  StringStackElement,
-} from './PrimitiveStackElement';
 
-export const getStackElementClass = (value: any) => {
+export const getStackElement = (value: any, options: JsonStreamOptions, depth: number) => {
   switch (typeof value) {
     case 'number':
-      return NumberStackElement;
+      return toNumberStackElement(value);
     case 'boolean':
-      return BooleanStackElement;
+      return toBooleanStackElement(value);
     case 'string':
-      return StringStackElement;
+      return toStringStackElement(value);
     case 'undefined':
-      return NullStackElement;
+      return toNullStackElement();
     case 'object':
-      if (value === null) return NullStackElement;
-      if (Array.isArray(value)) return ArrayStackElement;
+      if (value === null) return toNullStackElement();
+      if (Array.isArray(value)) return new ArrayStackElement(value, options, depth);
       if (value instanceof Readable) {
-        return getStreamStackElementClass(value);
+        return getStreamStackElement(value, options, depth);
       }
       if (value instanceof Promise || typeof value.then === 'function') {
-        return PromiseStackElement;
+        return new PromiseStackElement(value, options, depth);
       }
-      return ObjectStackElement;
+      return new ObjectStackElement(value, options, depth);
     case 'symbol':
-      return NullStackElement;
+      return toNullStackElement();
     case 'function':
-      return NullStackElement;
+      return toNullStackElement();
     case 'bigint':
       throw new Error(`BigInt value can't be serialized in JSON`);
     default:
@@ -47,26 +49,30 @@ export const getStackElementClass = (value: any) => {
   }
 };
 
-const getStreamStackElementClass = (value: any) => {
+const getStreamStackElement = (
+  value: Readable | JsonStream,
+  options: JsonStreamOptions,
+  depth: number,
+) => {
   if ('jsonStreamType' in value && value.jsonStreamType) {
     switch (value.jsonStreamType) {
       case JsonStreamType.ARRAY:
         if (value.readableObjectMode) {
-          return ArrayObjectStreamStackElement;
+          return new ArrayObjectStreamStackElement(value, options, depth);
         } else {
-          return ArrayStreamStackElement;
+          return new ArrayStreamStackElement(value, options, depth);
         }
       case JsonStreamType.RAW:
-        return StreamStackElement;
+        return new StreamStackElement(value, options, depth);
       case JsonStreamType.STRING:
-        return StringStreamStackElement;
+        return new StringStreamStackElement(value, options, depth);
       default:
         break;
     }
   }
   if (value.readableObjectMode) {
-    return ArrayObjectStreamStackElement;
+    return new ArrayObjectStreamStackElement(value, options, depth);
   } else {
-    return StringStreamStackElement;
+    return new StringStreamStackElement(value, options, depth);
   }
 };
