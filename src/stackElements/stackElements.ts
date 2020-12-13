@@ -3,22 +3,28 @@ import debugInit from 'debug';
 import { Readable } from 'stream';
 import { JsonStreamOptions } from '../jsonStreamOptions';
 import { endStream, escapeString, quote } from '../utils';
-import { BaseStackElement } from './BaseStackElement';
+import { toPrimitiveStackElement } from './PrimitiveStackElement';
 import { getStackElement } from './stackElementFactory';
 import { NextStackElement, StackElementType } from './types';
-import { noop } from './utils';
 const debug = debugInit('jetsons:StackElements');
 
-export class StackElement extends BaseStackElement {
+// tslint:disable-next-line: no-empty
+const noop = () => {};
+export class StackElement {
   private options: JsonStreamOptions;
   protected isComplete: boolean;
   depth: number;
+  protected value: any;
   constructor(value: any, options = {} as JsonStreamOptions, depth = 0) {
-    super(value, options);
+    this.value = this.parseValue(value, options);
     this.options = options;
     this.isComplete = false;
     this.depth = depth;
     debug('Created');
+  }
+
+  parseValue(value: any, _options?: JsonStreamOptions): any {
+    return value;
   }
 
   static factory(value: any, options: JsonStreamOptions, depth = 0): StackElementType {
@@ -36,8 +42,8 @@ export class StackElement extends BaseStackElement {
     return this.options.spaceFn(this.depth) + char;
   }
 
-  newSpacedElement(char: string, start = true): BaseStackElement {
-    return new BaseStackElement(start ? this.spaceStart(char) : this.spaceEnd(char));
+  newSpacedElement(char: string, start = true): StackElementType {
+    return toPrimitiveStackElement(start ? this.spaceStart(char) : this.spaceEnd(char));
   }
 
   newElement(value: any, depth = this.depth): StackElementType {
@@ -52,7 +58,7 @@ export class StackElement extends BaseStackElement {
     return { next, elements, done };
   }
 
-  async next(): Promise<NextStackElement> {
+  next(size: number): Promise<NextStackElement> | NextStackElement {
     this.completed();
     return this.nextState(this.value, [], true);
   }
@@ -95,7 +101,7 @@ export class ObjectStackElement extends StackElement {
     return value !== undefined && type !== 'function' && type !== 'symbol';
   }
 
-  async next(): Promise<NextStackElement> {
+  next(size: number): NextStackElement {
     if (this._first) {
       this._first = false;
       return this.nextState(this.spaceStart('{'));
@@ -118,7 +124,7 @@ export class ObjectStackElement extends StackElement {
 }
 
 export class PromiseStackElement extends StackElement {
-  async next(): Promise<NextStackElement> {
+  async next(size: number): Promise<NextStackElement> {
     const result = await this.value;
     this.completed();
     return this.nextState(null, [this.newElement(result)], true);
@@ -132,7 +138,7 @@ export class ArrayStackElement extends StackElement {
     this.depth++;
   }
 
-  async next(): Promise<NextStackElement> {
+  next(size: number): NextStackElement {
     if (this.atIndex === -1) {
       this.atIndex++;
       return this.nextState(this.spaceStart('['));
@@ -265,36 +271,36 @@ export class StreamStackElement extends StackElement {
     return { cleanup, promise };
   }
 
-  nextWhenReadable(): Promise<NextStackElement> | NextStackElement {
+  nextWhenReadable(size: number): Promise<NextStackElement> | NextStackElement {
     const chunk = this.value.read();
     if (chunk !== null) {
       return this.nextState(chunk);
     } else {
       this.state = StreamStackElementState.WAITING;
-      return this.next();
+      return this.next(size);
     }
   }
 
-  async nextWhenWaiting(): Promise<NextStackElement> {
+  async nextWhenWaiting(size: number): Promise<NextStackElement> {
     const read = this.untilReadable();
     const end = this.untilEnd();
     const cleanUp = () => [read, end].forEach((v) => v.cleanup());
     try {
       await Promise.race([read.promise, end.promise]);
       cleanUp();
-      return this.next();
+      return this.next(size);
     } catch (error) {
       cleanUp();
       throw error;
     }
   }
 
-  async next(): Promise<NextStackElement> {
+  async next(size: number): Promise<NextStackElement> {
     switch (this.state) {
       case StreamStackElementState.READABLE:
-        return this.nextWhenReadable();
+        return this.nextWhenReadable(size);
       case StreamStackElementState.WAITING:
-        return this.nextWhenWaiting();
+        return this.nextWhenWaiting(size);
       case StreamStackElementState.ENDED:
         this.completed();
         return this.endState();
@@ -354,7 +360,7 @@ export class ArrayStreamStackElement extends StreamStackElement {
 }
 
 export class ArrayObjectStreamStackElement extends ArrayStreamStackElement {
-  async nextWhenReadable(): Promise<NextStackElement> {
+  async nextWhenReadable(size: number): Promise<NextStackElement> {
     const chunk = this.value.read();
     if (chunk !== null) {
       if (this._secondStateSent) {
@@ -365,7 +371,7 @@ export class ArrayObjectStreamStackElement extends ArrayStreamStackElement {
       }
     } else {
       this.state = StreamStackElementState.WAITING;
-      return this.next();
+      return this.next(size);
     }
   }
 }
@@ -386,13 +392,13 @@ export class StringStreamStackElement extends StreamStackElement {
     return { next: '"', elements: [], done: false };
   }
 
-  async nextWhenReadable(): Promise<NextStackElement> {
+  async nextWhenReadable(size: number): Promise<NextStackElement> {
     const chunk = this.value.read();
     if (chunk !== null) {
       return this.nextState(escapeString(chunk.toString()));
     } else {
       this.state = StreamStackElementState.WAITING;
-      return this.next();
+      return this.next(size);
     }
   }
 }

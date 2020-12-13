@@ -5,5 +5,5 @@ export type NextStackElement = {
 };
 
 export type StackElementType = {
-  next: () => NextStackElement | Promise<NextStackElement>;
+  next: (size: number) => NextStackElement | Promise<NextStackElement>;
 };

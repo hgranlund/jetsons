@@ -4,12 +4,7 @@ import { Readable, ReadableOptions } from 'stream';
 import { inspect } from 'util';
 import { JsonStreamError } from './JsonStreamError';
 import { JsonStreamOptions, Replacer, SpaceReplacement } from './jsonStreamOptions';
-import {
-  NextStackElement,
-  StackElement,
-  StackElementType,
-  StreamStackElement,
-} from './stackElements';
+import { StackElement, StackElementType, StreamStackElement } from './stackElements';
 import { JsonStreamType } from './streamType';
 
 const debug = debugInit('jetsons:JsonStream');
@@ -83,32 +78,29 @@ export class JsonStream extends Readable {
     if (this.stack.isEmpty() || size <= 0) {
       return Promise.resolve();
     }
-    const element = this.stack.peekFront();
-    const next = element.next();
-    if (next instanceof Promise) {
-      const n = await next;
-      return this.handleNext(n, size);
-    } else {
-      return this.handleNext(next, size);
-    }
-  }
-
-  handleNext({ next, elements, done }: NextStackElement, size: number) {
-    if (done) {
-      this.stack.shift();
-    }
-    if (elements.length) {
-      elements.reverse().forEach((element) => this.stack.unshift(element));
-    }
-    if (next !== null) {
-      const buffer = Buffer.from(next);
-      if (this.push(buffer)) {
-        return this.processStack(size - buffer.length);
-      } else {
-        return Promise.resolve();
+    let nextToPush = '';
+    while (nextToPush.length < size && !this.stack.isEmpty()) {
+      const stackElement = this.stack.peekFront();
+      let nextStackElement = stackElement.next(size - nextToPush.length);
+      if (nextStackElement instanceof Promise) {
+        nextStackElement = await nextStackElement;
       }
-    } else {
-      return this.processStack(size);
+      const { next, elements, done } = nextStackElement;
+      if (done) {
+        this.stack.shift();
+      }
+      if (elements.length) {
+        elements.reverse().forEach((element) => this.stack.unshift(element));
+      }
+      if (next !== null) {
+        nextToPush += next;
+      }
+    }
+    if (nextToPush.length > 0) {
+      const shouldContinue = this.push(nextToPush);
+      if (shouldContinue) {
+        return this.processStack(size);
+      }
     }
   }
 

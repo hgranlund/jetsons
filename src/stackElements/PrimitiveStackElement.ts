@@ -1,7 +1,7 @@
 import { quote } from '../utils';
 import { StackElementType } from './types';
 
-const toStackElement = (nextValue: string): StackElementType => {
+export const toPrimitiveStackElement = (nextValue: string): StackElementType => {
   const next = () => {
     return { next: nextValue, elements: [], done: true };
   };
@@ -9,14 +9,14 @@ const toStackElement = (nextValue: string): StackElementType => {
 };
 
 export const toStringStackElement = (value: string) => {
-  return toStackElement(quote(value));
+  return toPrimitiveStackElement(quote(value));
 };
 export const toBooleanStackElement = (aBoolean: boolean) => {
-  return toStackElement(aBoolean ? 'true' : 'false');
+  return toPrimitiveStackElement(aBoolean ? 'true' : 'false');
 };
 export const toNumberStackElement = (aNumber: number) => {
-  return toStackElement(Number.isFinite(aNumber) ? String(aNumber) : 'null');
+  return toPrimitiveStackElement(Number.isFinite(aNumber) ? String(aNumber) : 'null');
 };
 export const toNullStackElement = () => {
-  return toStackElement('null');
+  return toPrimitiveStackElement('null');
 };
