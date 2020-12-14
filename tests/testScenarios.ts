@@ -1,6 +1,6 @@
-import { toStream, fibonacci } from './testUtils';
-import { JsonStream, JsonStreamType } from '../src';
+import { JsonStreamType } from '../src';
 import { Replacer, SpaceReplacement } from '../src/jsonStreamOptions';
+import { fibonacci, toStream } from './testUtils';
 
 export type ScenarioType = {
   input: () => any;
@@ -205,7 +205,7 @@ const legalScenarios = [
   scenario('a legal json with fibonacci as string stream', {
     input: () => ({
       aFibonacciStream: toStream(fibonacci(1, 9, true), JsonStreamType.ARRAY, {
-        objectMode: false,
+        objectMode: true,
       }),
     }),
     expectedResult: {
@@ -291,7 +291,7 @@ const legalScenarios = [
   }),
   scenario('a json with key replacer function', {
     input: () => ({
-      aKeyToNotBeStringified: 'Value we dont wnat to see',
+      aKeyToNotBeStringified: 'Value we dont want to see',
       aKeyToBeStringified: 'Value we want to see',
     }),
     replacer: ['aKeyToBeStringified'],

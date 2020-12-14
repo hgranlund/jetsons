@@ -1,9 +1,5 @@
 import { Readable, ReadableOptions, Stream, Writable } from 'stream';
-import { JsonStream, JsonStreamType, setJsonStreamType } from '../src';
-
-class TestableJsonStream extends JsonStream {
-  get;
-}
+import { JsonStreamType, setJsonStreamType } from '../src';
 
 export const devNullStream = (): Writable =>
   new Writable({
@@ -42,9 +38,13 @@ const intoStream = (obj: any, options: ReadableOptions): Readable => {
     ...options,
     read(): void {
       if (values.length) {
-        setImmediate(() => this.push(values.shift()));
+        if (values.length % 50 === 0) {
+          setImmediate(() => this.push(values.shift()));
+        } else {
+          this.push(values.shift());
+        }
       } else {
-        setImmediate(() => this.push(null));
+        this.push(null);
       }
     },
   });
@@ -56,14 +56,20 @@ const generatorToStream = (
   valueToBeStream: Generator<any, void, unknown>,
   options: ReadableOptions,
 ): Readable => {
+  let counter = 0;
   return new Readable({
     ...options,
     read(): void {
+      counter += 1;
       const { value, done } = valueToBeStream.next();
       if (done) {
-        setImmediate(() => this.push(null));
+        this.push(null);
       } else {
-        setImmediate(() => this.push(value));
+        if (counter % 50 === 0) {
+          setImmediate(() => this.push(value));
+        } else {
+          this.push(value);
+        }
       }
     },
   });
@@ -105,5 +111,3 @@ export function* fibonacci(
     [current, next] = [next, current + next];
   }
 }
-
-module.exports = { toStream, fibonacci, devNullStream };

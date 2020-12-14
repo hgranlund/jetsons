@@ -10,3 +10,4 @@ coverage/*
 node_trace*
 dist/
 distTest/
+tests/runs/performanceRun-2*
