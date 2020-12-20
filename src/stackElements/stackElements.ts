@@ -1,4 +1,4 @@
-// tslint:disable: max-classes-per-file
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import debugInit from 'debug';
 import { Readable } from 'stream';
 import { JsonStreamOptions } from '../jsonStreamOptions';
@@ -8,7 +8,7 @@ import { getStackElement } from './stackElementFactory';
 import { NextStackElement, StackElementType } from './types';
 const debug = debugInit('jetsons:StackElements');
 
-// tslint:disable-next-line: no-empty
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 const noop = () => {};
 export class StackElement {
   private options: JsonStreamOptions;

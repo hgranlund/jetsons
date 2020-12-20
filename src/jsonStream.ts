@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import debugInit from 'debug';
 import Denque from 'denque';
 import { Readable, ReadableOptions } from 'stream';
@@ -38,7 +39,7 @@ export class JsonStream extends Readable {
     this.on('close', () => this.onClose());
   }
 
-  addFirstStackElement(value: any, options: JsonStreamOptions) {
+  addFirstStackElement(value: any, options: JsonStreamOptions): void {
     const shouldReturnUndefined = ['function', 'undefined', 'symbol'].includes(typeof value);
     if (!shouldReturnUndefined) {
       this.stack.push(StackElement.factory(value, options));

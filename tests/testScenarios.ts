@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { JsonStreamType } from '../src';
 import { Replacer, SpaceReplacement } from '../src/jsonStreamOptions';
 import { fibonacci, toStream } from './testUtils';
@@ -14,7 +15,6 @@ const scenario = (name: string, opt: ScenarioType): [string, ScenarioType] => {
   return [name, { input: () => input(), replacer, expectedResult }];
 };
 
-// tslint:disable-next-line: no-empty
 const noop = () => {};
 
 const legalScenarios = [

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { ClientRequest } from 'http';
 import 'jest-extended';
 import { Collector, JsonStream, JsonStreamType } from '../src';

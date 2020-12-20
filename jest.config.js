@@ -7,4 +7,5 @@ module.exports = {
   coverageReporters: ['cobertura', 'html'],
   bail: true,
   roots: ['src', 'tests'],
+  tsconfig: "./tsconfig.test.json"
 };

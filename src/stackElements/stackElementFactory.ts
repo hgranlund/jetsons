@@ -1,4 +1,5 @@
 import { Readable } from 'stream';
+import { StackElementType } from './types';
 import { JsonStream } from '../jsonStream';
 import { JsonStreamOptions } from '../jsonStreamOptions';
 import { JsonStreamType } from '../streamType';
@@ -18,7 +19,11 @@ import {
   StringStreamStackElement,
 } from './stackElements';
 
-export const getStackElement = (value: any, options: JsonStreamOptions, depth: number) => {
+export const getStackElement = (
+  value: any,
+  options: JsonStreamOptions,
+  depth: number
+): StackElementType => {
   switch (typeof value) {
     case 'number':
       return toNumberStackElement(value);
@@ -30,7 +35,8 @@ export const getStackElement = (value: any, options: JsonStreamOptions, depth: n
       return toNullStackElement();
     case 'object':
       if (value === null) return toNullStackElement();
-      if (Array.isArray(value)) return new ArrayStackElement(value, options, depth);
+      if (Array.isArray(value))
+        return new ArrayStackElement(value, options, depth);
       if (value instanceof Readable) {
         return getStreamStackElement(value, options, depth);
       }
@@ -45,14 +51,16 @@ export const getStackElement = (value: any, options: JsonStreamOptions, depth: n
     case 'bigint':
       throw new Error(`BigInt value can't be serialized in JSON`);
     default:
-      throw new Error(`type ${typeof value} - ${value} value can't be serialized in JSON`);
+      throw new Error(
+        `type ${typeof value} - ${value} value can't be serialized in JSON`
+      );
   }
 };
 
 const getStreamStackElement = (
   value: Readable | JsonStream,
   options: JsonStreamOptions,
-  depth: number,
+  depth: number
 ) => {
   if ('jsonStreamType' in value && value.jsonStreamType) {
     switch (value.jsonStreamType) {
