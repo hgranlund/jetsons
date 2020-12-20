@@ -26,6 +26,10 @@ const legalScenarios = [
     input: () => undefined,
     expectedResult: undefined,
   }),
+  scenario('a function value', {
+    input: () => () => 'should not be stringified',
+    expectedResult: undefined,
+  }),
   scenario('a empty array', {
     input: () => [],
     expectedResult: [],
@@ -224,7 +228,7 @@ const legalScenarios = [
     input: () => ({
       aArrayStream: toStream(
         [1, { key: 'string' }, [1, 2, 3], false, Symbol(43), undefined, noop],
-        JsonStreamType.ARRAY,
+        JsonStreamType.ARRAY
       ),
     }),
     expectedResult: {

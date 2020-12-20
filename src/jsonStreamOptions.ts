@@ -17,14 +17,6 @@ export class JsonStreamOptions {
     this.debug = depth;
   }
 
-  isReplacerAFunction(): boolean {
-    return typeof this.replacer === 'function';
-  }
-
-  isReplacerAnArray(): boolean {
-    return Array.isArray(this.replacer);
-  }
-
   initReplace(value: any): any {
     if (typeof this.replacer === 'function') {
       return this.replacer('', value);

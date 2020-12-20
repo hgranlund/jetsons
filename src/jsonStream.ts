@@ -5,8 +5,16 @@ import { Readable, ReadableOptions } from 'stream';
 import { setImmediate } from 'timers';
 import { inspect } from 'util';
 import { JsonStreamError } from './JsonStreamError';
-import { JsonStreamOptions, Replacer, SpaceReplacement } from './jsonStreamOptions';
-import { StackElement, StackElementType, StreamStackElement } from './stackElements';
+import {
+  JsonStreamOptions,
+  Replacer,
+  SpaceReplacement,
+} from './jsonStreamOptions';
+import {
+  StackElement,
+  StackElementType,
+  StreamStackElement,
+} from './stackElements';
 import { JsonStreamType } from './streamType';
 
 const debug = debugInit('jetsons:JsonStream');
@@ -26,7 +34,7 @@ export class JsonStream extends Readable {
     value: any,
     replacer?: Replacer,
     space?: SpaceReplacement,
-    streamOpt?: ReadableOptions,
+    streamOpt?: ReadableOptions
   ) {
     super(streamOpt);
     this.stack = new Denque();
@@ -40,7 +48,9 @@ export class JsonStream extends Readable {
   }
 
   addFirstStackElement(value: any, options: JsonStreamOptions): void {
-    const shouldReturnUndefined = ['function', 'undefined', 'symbol'].includes(typeof value);
+    const shouldReturnUndefined = ['function', 'undefined', 'symbol'].includes(
+      typeof value
+    );
     if (!shouldReturnUndefined) {
       this.stack.push(StackElement.factory(value, options));
     }
@@ -63,7 +73,7 @@ export class JsonStream extends Readable {
       try {
         const shouldContinue = await this.processStack(size);
         if (shouldContinue || this.isInState(StreamState.READ_WHILE_READING)) {
-          setImmediate(() => this._read());
+          setImmediate(() => this._read(size));
         }
         this.state = StreamState.WAITING;
       } catch (error) {
@@ -104,13 +114,13 @@ export class JsonStream extends Readable {
     return true;
   }
 
-  handleError(error: JsonStreamError) {
-    const newError = error;
+  handleError(error: Error) {
+    const newError = error as JsonStreamError;
     newError.jsonStreamStack = this.stack.toArray();
     debug(
       error,
       '\nWhile processing stack:',
-      inspect(newError.jsonStreamStack, { maxArrayLength: 15 }),
+      inspect(newError.jsonStreamStack, { maxArrayLength: 15 })
     );
     this.state = StreamState.ERROR;
     setImmediate(() => this.emit('error', error));

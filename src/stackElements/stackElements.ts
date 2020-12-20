@@ -15,7 +15,7 @@ export class StackElement {
   protected isComplete: boolean;
   depth: number;
   protected value: any;
-  constructor(value: any, options = {} as JsonStreamOptions, depth = 0) {
+  constructor(value: any, options: JsonStreamOptions, depth) {
     this.value = this.parseValue(value, options);
     this.options = options;
     this.isComplete = false;

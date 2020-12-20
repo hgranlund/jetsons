@@ -1,3 +1,5 @@
-export class JsonStreamError extends Error {
-  jsonStreamStack: any[];
+import { StackElementType } from './stackElements';
+
+export interface JsonStreamError extends Error {
+  jsonStreamStack: StackElementType[];
 }
