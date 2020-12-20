@@ -19,6 +19,7 @@
     "stream",
     "streaming",
     "json",
+    "jsonStream",
     "stringify",
     "streamify",
     "readable",

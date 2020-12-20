@@ -27,7 +27,11 @@ export class StackElement {
     return value;
   }
 
-  static factory(value: any, options: JsonStreamOptions, depth = 0): StackElementType {
+  static factory(
+    value: any,
+    options: JsonStreamOptions,
+    depth = 0
+  ): StackElementType {
     if (value && value.toJSON instanceof Function) {
       value = value.toJSON();
     }
@@ -43,7 +47,9 @@ export class StackElement {
   }
 
   newSpacedElement(char: string, start = true): StackElementType {
-    return toPrimitiveStackElement(start ? this.spaceStart(char) : this.spaceEnd(char));
+    return toPrimitiveStackElement(
+      start ? this.spaceStart(char) : this.spaceEnd(char)
+    );
   }
 
   newElement(value: any, depth = this.depth): StackElementType {
@@ -72,7 +78,11 @@ export class ObjectStackElement extends StackElement {
   protected _first: boolean;
   protected value: [any, any][];
 
-  constructor(value: Record<any, any>, options: JsonStreamOptions, depth: number) {
+  constructor(
+    value: Record<any, any>,
+    options: JsonStreamOptions,
+    depth: number
+  ) {
     super(value, options, depth);
     this._first = true;
     this.depth++;
@@ -84,16 +94,21 @@ export class ObjectStackElement extends StackElement {
 
   parseValue(value: any, options: JsonStreamOptions): [string, unknown][] {
     let entries = Object.entries(value);
-    const replacer = options?.replacer;
+    const replacer = (options || {}).replacer;
     if (typeof replacer === 'function') {
-      entries = entries.map(([key, entryValue]) => [key, replacer(key, entryValue)]);
+      entries = entries.map(([key, entryValue]) => [
+        key,
+        replacer(key, entryValue),
+      ]);
     }
 
     if (Array.isArray(replacer)) {
       entries = entries.filter(([key]) => replacer.includes(key));
     }
 
-    return entries.filter(([, entryValue]) => this.shouldValueBeStringified(entryValue));
+    return entries.filter(([, entryValue]) =>
+      this.shouldValueBeStringified(entryValue)
+    );
   }
 
   shouldValueBeStringified(value: any): boolean {
@@ -209,9 +224,13 @@ export class StreamStackElement extends StackElement {
 
   initValidate(): void {
     if (this.value.readableEnded) {
-      this.handleError(new Error('Readable Stream has already ended. Unable to process it!'));
+      this.handleError(
+        new Error('Readable Stream has already ended. Unable to process it!')
+      );
     } else if (this.value.readableFlowing) {
-      this.handleError(new Error('Readable Stream is in flowing mode, data may be lost'));
+      this.handleError(
+        new Error('Readable Stream is in flowing mode, data may be lost')
+      );
     }
   }
 
@@ -310,12 +329,18 @@ export class StreamStackElement extends StackElement {
       case StreamStackElementState.ERROR:
         throw this.error;
       default:
-        throw new Error(`Illegal state ${this.state} in ${this.constructor.name}`);
+        throw new Error(
+          `Illegal state ${this.state} in ${this.constructor.name}`
+        );
     }
   }
 
   end(): void {
-    if (![StreamStackElementState.ENDED, StreamStackElementState.ERROR].includes(this.state)) {
+    if (
+      ![StreamStackElementState.ENDED, StreamStackElementState.ERROR].includes(
+        this.state
+      )
+    ) {
       debug('Closing stream');
       endStream(this.value);
     }
@@ -364,7 +389,10 @@ export class ArrayObjectStreamStackElement extends ArrayStreamStackElement {
     const chunk = this.value.read();
     if (chunk !== null) {
       if (this._secondStateSent) {
-        return this.nextState(null, [this.newSpacedElement(','), this.newElement(chunk)]);
+        return this.nextState(null, [
+          this.newSpacedElement(','),
+          this.newElement(chunk),
+        ]);
       } else {
         this._secondStateSent = true;
         return this.nextState(null, [this.newElement(chunk)]);
