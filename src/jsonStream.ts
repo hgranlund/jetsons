@@ -1,6 +1,7 @@
 import debugInit from 'debug';
 import Denque from 'denque';
 import { Readable, ReadableOptions } from 'stream';
+import { setImmediate } from 'timers';
 import { inspect } from 'util';
 import { JsonStreamError } from './JsonStreamError';
 import { JsonStreamOptions, Replacer, SpaceReplacement } from './jsonStreamOptions';
@@ -59,8 +60,8 @@ export class JsonStream extends Readable {
     } else {
       this.state = StreamState.READING;
       try {
-        await this.processStack(size);
-        if (this.isInState(StreamState.READ_WHILE_READING)) {
+        const shouldContinue = await this.processStack(size);
+        if (shouldContinue || this.isInState(StreamState.READ_WHILE_READING)) {
           setImmediate(() => this._read());
         }
         this.state = StreamState.WAITING;
@@ -74,9 +75,9 @@ export class JsonStream extends Readable {
     return this.state === state;
   }
 
-  async processStack(size: number): Promise<void> {
+  async processStack(size: number): Promise<boolean> {
     if (this.stack.isEmpty() || size <= 0) {
-      return Promise.resolve();
+      return Promise.resolve(true);
     }
     let nextToPush = '';
     while (nextToPush.length < size && !this.stack.isEmpty()) {
@@ -97,11 +98,9 @@ export class JsonStream extends Readable {
       }
     }
     if (nextToPush.length > 0) {
-      const shouldContinue = this.push(nextToPush);
-      if (shouldContinue) {
-        return this.processStack(size);
-      }
+      return this.push(nextToPush);
     }
+    return true;
   }
 
   handleError(error: JsonStreamError) {

@@ -1,9 +1,9 @@
-// tslint:disable: no-console
 import Benchmark, { Event } from 'benchmark';
 import { createReadStream, readFileSync } from 'fs';
 import { JsonStream, JsonStreamType, setJsonStreamType } from '../src';
 import { compareWithPrev } from './benchmarkUtils';
 import { devNullStream, toStream } from './testUtils';
+
 
 const toPerformanceTest = (obj: () => any, name: string, StreamClass = JsonStream) => {
   const test = (deferred) => {
