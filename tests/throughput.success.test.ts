@@ -1,8 +1,8 @@
 import 'jest-extended';
 import { Readable } from 'stream';
-import { Collector, JsonStream } from '../src';
+import { Collector, JsonStream, JsonStreamType } from '../src';
 import { getTestScenarios } from './testScenarios';
-import { toStream } from './testUtils';
+import { fibonacci, toStream } from './testUtils';
 
 const legalScenarios = getTestScenarios();
 describe('Jetsons is loaded', () => {
@@ -23,23 +23,26 @@ describe('Jetsons is loaded', () => {
         expect(stream.readableEnded).toBeFalsy();
         expect(stream.readableFlowing).toBeFalsy();
       });
-    },
+    }
   );
 
-  describe.each(legalScenarios)('and toObject on scenario[%#]: %s', (_, scenario) => {
-    let object;
+  describe.each(legalScenarios)(
+    'and toObject on scenario[%#]: %s',
+    (_, scenario) => {
+      let object;
 
-    beforeAll(async (done) => {
-      const { input, replacer, space } = scenario;
-      const collector = new Collector(input(), replacer, space);
-      object = await collector.toObject();
-      done();
-    });
+      beforeAll(async (done) => {
+        const { input, replacer, space } = scenario;
+        const collector = new Collector(input(), replacer, space);
+        object = await collector.toObject();
+        done();
+      });
 
-    it('should return a expected output', () => {
-      expect(object).toEqual(scenario.expectedResult);
-    });
-  });
+      it('should return a expected output', () => {
+        expect(object).toEqual(scenario.expectedResult);
+      });
+    }
+  );
 
   describe('and toJsonString on a value', () => {
     let value;
@@ -59,6 +62,26 @@ describe('Jetsons is loaded', () => {
     it('should return a expected json string', () => {
       const expectedJsonString = JSON.stringify(value, null, '');
       expect(jsonString).toEqual(expectedJsonString);
+    });
+  });
+
+  describe('should handle small highWatermark opt', () => {
+    const testInput = {
+      aFibonacciStream: toStream(
+        fibonacci(1, 20, true),
+        JsonStreamType.STRING,
+        { objectMode: false, highWaterMark: 2 }
+      ),
+    };
+    const expectedResult = {
+      aFibonacciStream: '1123581321345589144233377610987159725844181',
+    };
+    it('should give expected result', async () => {
+      const json = await new Collector(testInput, null, null, {
+        highWaterMark: 2,
+      }).toJson();
+      const expectedJson = JSON.stringify(expectedResult);
+      expect(json).toEqual(expectedJson);
     });
   });
 

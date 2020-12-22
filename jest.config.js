@@ -5,6 +5,7 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   reporters: ['default'],
   bail: true,
-  collectCoverageFrom: ["src/**/*.ts"],
+  coverageReporters: ['json', 'lcov', 'text', 'clover', 'html'],
+  collectCoverageFrom: ['src/**/*.ts'],
   roots: ['src', 'tests'],
 };

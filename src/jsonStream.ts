@@ -56,14 +56,14 @@ export class JsonStream extends Readable {
     }
   }
 
-  async _read(size = 32384): Promise<void> {
+  async _read(size = 16192): Promise<void> {
     if (this.stack.isEmpty()) {
-      if (this.state !== StreamState.ENDED) {
+      if (!this.isInState(StreamState.ENDED)) {
         this.state = StreamState.ENDED;
         this.push(null);
         debug('Completed');
       }
-    } else if (this.state !== StreamState.WAITING) {
+    } else if (!this.isInState(StreamState.WAITING)) {
       if (this.isInState(StreamState.READING)) {
         this.state = StreamState.READ_WHILE_READING;
       }

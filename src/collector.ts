@@ -1,10 +1,16 @@
+import { ReadableOptions } from 'stream';
 import { JsonStream } from './jsonStream';
 import { Replacer } from './jsonStreamOptions';
 
 export class Collector extends JsonStream {
   json: string | Promise<string>;
-  constructor(value: any, replacer?: Replacer, space?: string | number) {
-    super(value, replacer, space);
+  constructor(
+    value: any,
+    replacer?: Replacer,
+    space?: string | number,
+    opt?: ReadableOptions
+  ) {
+    super(value, replacer, space, opt);
     this.json = '';
   }
 

@@ -198,6 +198,21 @@ const legalScenarios = [
       aKeyWithStream: [{ streamed: 'value' }],
     },
   }),
+  scenario(
+    'a legal json with fibonacci as string stream with small watermark',
+    {
+      input: () => ({
+        aFibonacciStream: toStream(
+          fibonacci(1, 20, true),
+          JsonStreamType.STRING,
+          { objectMode: false, highWaterMark: 2 }
+        ),
+      }),
+      expectedResult: {
+        aFibonacciStream: '1123581321345589144233377610987159725844181',
+      },
+    }
+  ),
   scenario('a legal json with fibonacci as string stream', {
     input: () => ({
       aFibonacciStream: toStream(fibonacci(1, 9), JsonStreamType.STRING),
@@ -206,7 +221,7 @@ const legalScenarios = [
       aFibonacciStream: '1123581321',
     },
   }),
-  scenario('a legal json with fibonacci as string stream', {
+  scenario('a legal json with fibonacci as array string stream', {
     input: () => ({
       aFibonacciStream: toStream(fibonacci(1, 9, true), JsonStreamType.ARRAY, {
         objectMode: true,
@@ -216,14 +231,33 @@ const legalScenarios = [
       aFibonacciStream: ['1', '1', '2', '3', '5', '8', '13', '21'],
     },
   }),
-  scenario('a legal json with fibonacci as array stream', {
+  scenario('a legal json with fibonacci as array int stream', {
     input: () => ({
-      aFibonacciStream: toStream(fibonacci(1, 9), JsonStreamType.ARRAY),
+      aFibonacciStream: toStream(fibonacci(1, 9), JsonStreamType.ARRAY, {
+        objectMode: true,
+      }),
     }),
     expectedResult: {
       aFibonacciStream: [1, 1, 2, 3, 5, 8, 13, 21],
     },
   }),
+  scenario(
+    'a legal json with fibonacci as array string stream with objectMode=false',
+    {
+      input: () => ({
+        aFibonacciStream: toStream(
+          fibonacci(1, 9, true),
+          JsonStreamType.ARRAY,
+          {
+            objectMode: false,
+          }
+        ),
+      }),
+      expectedResult: {
+        aFibonacciStream: ['1123581321'],
+      },
+    }
+  ),
   scenario('a legal json with object array stream', {
     input: () => ({
       aArrayStream: toStream(
