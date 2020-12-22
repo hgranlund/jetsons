@@ -36,8 +36,8 @@ npm install jetsons --save
 
 ## Usage
 
-```javascript
-const { JsonStream } = require('jetsons');
+```ts
+import { JsonStream } from 'jetsons';
 
 const jsonStream = new JsonStream({
   aPromise: Promise.resolve('A resolved text'),
@@ -55,22 +55,22 @@ jsonStream.pipe(process.stdout);
 
 ### Streams with different **_jsonType`s_**
 
-```javascript
-const { JsonStream } = require('jetsons');
+```ts
+import { JsonStream, JsonStreamType, setJsonStreamType } from 'jetsons';
 
-const arrayStream = Readable.from(fibonacciGenerator(1, 9)):
-arrayStream.jsonType = JsonStream.jsonTypes.array;
+const aStream = Readable.from(fibonacciGenerator(1, 9));
+const arrayStream = setJsonStreamType(aStream, JsonStreamType.ARRAY);
 
-const rawStream = Readable.from(fibonacciStringGenerator(1, 9)):
-rawStream.jsonType = JsonStream.jsonTypes.raw;
+const aStream2 = Readable.from(fibonacciGenerator(1, 9));
+const rawStream = setJsonStreamType(aStream2, JsonStreamType.RAW);
 
-const stringStream = Readable.from(fibonacciGenerator(1, 9)):
-stringStream.jsonType = JsonStream.jsonTypes.string;
+const aStream3 = Readable.from(fibonacciGenerator(1, 9));
+const stringStream = setJsonStreamType(aStream3, JsonStreamType.STRING);
 
 const jsonStream = new JsonStream({
   arrayStream,
   rawStream,
-  stringStream
+  stringStream,
 });
 
 jsonStream.pipe(process.stdout);
@@ -83,8 +83,8 @@ jsonStream.pipe(process.stdout);
 
 ### Practical example with Express
 
-```javascript
-const { JsonStream } = require('jetsons');
+```ts
+import { JsonStream } from 'jetsons';
 
 app.get('/resource', (req, res, next) => {
   const jsonStream = new JsonStream({

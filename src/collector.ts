@@ -1,12 +1,20 @@
-const JsonStream = require('./jsonStream');
+import { ReadableOptions } from 'stream';
+import { JsonStream } from './jsonStream';
+import { Replacer } from './jsonStreamOptions';
 
-class Collector extends JsonStream {
-  constructor(value, replacer, space) {
-    super(value, replacer, space);
+export class Collector extends JsonStream {
+  json: string | Promise<string>;
+  constructor(
+    value: any,
+    replacer?: Replacer,
+    space?: string | number,
+    opt?: ReadableOptions
+  ) {
+    super(value, replacer, space, opt);
     this.json = '';
   }
 
-  toJson() {
+  toJson(): Promise<string> {
     if (this.json instanceof Promise) {
       return this.json;
     }
@@ -14,11 +22,12 @@ class Collector extends JsonStream {
       Promise.resolve(this.json);
     }
     this.json = new Promise((resolve, reject) => {
-      let strings = [];
+      const strings = [] as string[];
       this.on('readable', () => {
-        let data;
-        while ((data = this.read())) {
+        let data = this.read();
+        while (data) {
           strings.push(data.toString());
+          data = this.read();
         }
       })
         .on('end', () => {
@@ -29,15 +38,15 @@ class Collector extends JsonStream {
           }
           resolve(this.json);
         })
-        .on('error', error => {
+        .on('error', (error) => {
           reject(error);
         });
     });
     return this.json;
   }
 
-  toObject() {
-    return this.toJson().then(jsonString => {
+  toObject(): Promise<any> {
+    return this.toJson().then((jsonString) => {
       try {
         if (jsonString === undefined) {
           return jsonString;
@@ -50,5 +59,3 @@ class Collector extends JsonStream {
     });
   }
 }
-
-module.exports = Collector;

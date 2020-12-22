@@ -1,15 +1,14 @@
-const Benchmark = require('benchmark');
-const { createReadStream, readFileSync } = require('fs');
-const { devNullStream, toStream } = require('./testUtils');
-const { compareWithPrev } = require('./benchmarkUtils');
-const { JsonStream } = require('../src');
+import Benchmark, { Event } from 'benchmark';
+import { createReadStream, readFileSync } from 'fs';
+import { JsonStream, JsonStreamType, setJsonStreamType } from '../src';
+import { compareWithPrev } from './benchmarkUtils';
+import { devNullStream, toStream } from './testUtils';
 
-const toPerformanceTest = (obj, name, StreamClass = JsonStream) => {
-  const test = deferred => {
+
+const toPerformanceTest = (obj: () => any, name: string, StreamClass = JsonStream) => {
+  const test = (deferred) => {
     const stream = new StreamClass(obj());
-    stream
-      .on('end', () => deferred.resolve())
-      .on('error', () => deferred.resolve());
+    stream.on('end', () => deferred.resolve()).on('error', () => deferred.resolve());
     stream.pipe(devNullStream());
   };
   return { name, test };
@@ -33,11 +32,10 @@ const jsonWith4MBStringStreamJsonStream = toPerformanceTest(
 
 const jsonWith4MBRawStreamJsonStream = toPerformanceTest(() => {
   const stream = createReadStream('./tests/data/loremIpsum-4mb.json');
-  stream.jsonType = JsonStream.jsonTypes.raw;
-  return { rawLorem: stream };
+  return { rawLorem: setJsonStreamType(stream, JsonStreamType.RAW) };
 }, 'jsonWith4MBRawStream');
 
-const hugeJson = JSON.parse(readFileSync('tests/data/quotes.json'));
+const hugeJson = JSON.parse(readFileSync('tests/data/quotes.json').toString());
 const hugeJsonTest = toPerformanceTest(() => hugeJson, 'hugeJson');
 
 const ha10k = new Array(10000).fill('sd');
@@ -63,20 +61,17 @@ const tests = [
   arrayObjectStream10kTest,
 ];
 
-const longestName = tests.reduce(
-  (longest, { name }) => Math.max(longest, name.length),
-  0,
-);
+const longestName = tests.reduce((longest, { name }) => Math.max(longest, name.length), 0);
 
 tests
   .reduce((suite, { name, test }) => {
     suite.add(name.padEnd(longestName, '.'), test, { defer: true });
     return suite;
   }, new Benchmark.Suite())
-  .on('cycle', function(event) {
+  .on('cycle', (event: Event) => {
     console.log(String(event.target));
   })
-  .on('complete', event => {
+  .on('complete', (event: Event) => {
     compareWithPrev(event);
   })
   .run();

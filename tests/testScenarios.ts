@@ -1,36 +1,52 @@
-const { toStream, fibonacci } = require('./testUtils');
-const { JsonStream } = require('../src');
+/* eslint-disable @typescript-eslint/no-empty-function */
+import { JsonStreamType } from '../src';
+import { Replacer, SpaceReplacement } from '../src/jsonStreamOptions';
+import { fibonacci, toStream } from './testUtils';
 
-const senario = (name, { input, replacer, expectedResult }) => {
+export type ScenarioType = {
+  input: () => any;
+  replacer?: Replacer;
+  space?: SpaceReplacement;
+  expectedResult: any;
+};
+
+const scenario = (name: string, opt: ScenarioType): [string, ScenarioType] => {
+  const { input, replacer, expectedResult } = opt;
   return [name, { input: () => input(), replacer, expectedResult }];
 };
 
-const legalSenarios = [
-  senario('a Symbol', {
+const noop = () => {};
+
+const legalScenarios = [
+  scenario('a Symbol', {
     input: () => Symbol(42),
     expectedResult: undefined,
   }),
-  senario('a undefined value', {
+  scenario('a undefined value', {
     input: () => undefined,
     expectedResult: undefined,
   }),
-  senario('a empty array', {
+  scenario('a function value', {
+    input: () => () => 'should not be stringified',
+    expectedResult: undefined,
+  }),
+  scenario('a empty array', {
     input: () => [],
     expectedResult: [],
   }),
-  senario('a string', {
+  scenario('a string', {
     input: () => 'a string',
     expectedResult: 'a string',
   }),
-  senario('a legal array with Number', {
+  scenario('a legal array with Number', {
     input: () => [1, 2, 3],
     expectedResult: [1, 2, 3],
   }),
-  senario('a legal array with Number, string, null and boolean', {
+  scenario('a legal array with Number, string, null and boolean', {
     input: () => [1, 'aString', false, null],
     expectedResult: [1, 'aString', false, null],
   }),
-  senario('a legal json with Number', {
+  scenario('a legal json with Number', {
     input: () => ({
       aKeyWithNumber: 1,
     }),
@@ -38,7 +54,7 @@ const legalSenarios = [
       aKeyWithNumber: 1,
     },
   }),
-  senario('a legal json with Infinity', {
+  scenario('a legal json with Infinity', {
     input: () => ({
       aKeyWithNumber: Infinity,
     }),
@@ -46,7 +62,7 @@ const legalSenarios = [
       aKeyWithNumber: null,
     },
   }),
-  senario('a legal json with Boolean', {
+  scenario('a legal json with Boolean', {
     input: () => ({
       aKeyWithBoolean: true,
     }),
@@ -54,7 +70,7 @@ const legalSenarios = [
       aKeyWithBoolean: true,
     },
   }),
-  senario('a legal json with String', {
+  scenario('a legal json with String', {
     input: () => ({
       aKeyWithString: 'aString',
     }),
@@ -62,7 +78,7 @@ const legalSenarios = [
       aKeyWithString: 'aString',
     },
   }),
-  senario('a legal json with String and special chars', {
+  scenario('a legal json with String and special chars', {
     input: () => ({
       aKeyWithString: 'line1\nline2\\\b\f\t\f\r"\u0000',
     }),
@@ -70,7 +86,7 @@ const legalSenarios = [
       aKeyWithString: 'line1\nline2\\\b\f\t\f\r"\u0000',
     },
   }),
-  senario('a legal json with number as String', {
+  scenario('a legal json with number as String', {
     input: () => ({
       aKeyWithString: '1',
     }),
@@ -78,14 +94,14 @@ const legalSenarios = [
       aKeyWithString: '1',
     },
   }),
-  senario('a object with toJSON method', {
+  scenario('a object with toJSON method', {
     input: () => ({
       aObjProp: '',
       toJSON: () => ({ toJSONProp: 'From toJSON method' }),
     }),
     expectedResult: { toJSONProp: 'From toJSON method' },
   }),
-  senario('a legal json with boolean as String', {
+  scenario('a legal json with boolean as String', {
     input: () => ({
       aKeyWithString: 'true',
     }),
@@ -93,7 +109,7 @@ const legalSenarios = [
       aKeyWithString: 'true',
     },
   }),
-  senario('a legal json with Unicode Character', {
+  scenario('a legal json with Unicode Character', {
     input: () => ({
       aKeyWithString: `\u007f#\u0600`,
     }),
@@ -101,18 +117,18 @@ const legalSenarios = [
       aKeyWithString: `\u007f#\u0600`,
     },
   }),
-  senario('a legal json with null, symbol, function and undefined value', {
+  scenario('a legal json with null, symbol, function and undefined value', {
     input: () => ({
       aKeyWithNull: null,
       aKeyWithUndefined: undefined,
-      aKeyWithFunction: () => {},
+      aKeyWithFunction: noop,
       aKeyWithSymbol: Symbol(42),
     }),
     expectedResult: {
       aKeyWithNull: null,
     },
   }),
-  senario('a legal json with String', {
+  scenario('a legal json with String', {
     input: () => ({
       aKeyWithArray: [1, true, 'aSting'],
     }),
@@ -120,7 +136,7 @@ const legalSenarios = [
       aKeyWithArray: [1, true, 'aSting'],
     },
   }),
-  senario('a legal json with string, number and array', {
+  scenario('a legal json with string, number and array', {
     input: () => ({
       aKeyWithString: 'aValue',
       aKeyWithNumber: 1,
@@ -132,7 +148,7 @@ const legalSenarios = [
       aKeyWithArray: [1, 2, 3],
     },
   }),
-  senario('a legal json with nested json', {
+  scenario('a legal json with nested json', {
     input: () => ({
       aKeyWithString: 'aValue',
       aKeyWithNumber: 1,
@@ -150,7 +166,7 @@ const legalSenarios = [
       },
     },
   }),
-  senario('a legal json with string stream', {
+  scenario('a legal json with string stream', {
     input: () => ({
       aKeyWithStream: toStream('aValue'),
     }),
@@ -158,7 +174,7 @@ const legalSenarios = [
       aKeyWithStream: 'aValue',
     },
   }),
-  senario('a legal json with string stream with newline', {
+  scenario('a legal json with string stream with newline', {
     input: () => ({
       aKeyWithStream: toStream('aline\nAnotherline'),
     }),
@@ -166,15 +182,15 @@ const legalSenarios = [
       aKeyWithStream: 'aline\nAnotherline',
     },
   }),
-  senario('a legal json with raw stream', {
+  scenario('a legal json with raw stream', {
     input: () => ({
-      aKeyWithStream: toStream('"aValue"', JsonStream.jsonTypes.raw),
+      aKeyWithStream: toStream('"aValue"', JsonStreamType.RAW),
     }),
     expectedResult: {
       aKeyWithStream: 'aValue',
     },
   }),
-  senario('a legal json with object stream', {
+  scenario('a legal json with object stream', {
     input: () => ({
       aKeyWithStream: toStream({ streamed: 'value' }),
     }),
@@ -182,80 +198,90 @@ const legalSenarios = [
       aKeyWithStream: [{ streamed: 'value' }],
     },
   }),
-  senario('a legal json with fibonacci as string stream', {
+  scenario(
+    'a legal json with fibonacci as string stream with small watermark',
+    {
+      input: () => ({
+        aFibonacciStream: toStream(
+          fibonacci(1, 20, true),
+          JsonStreamType.STRING,
+          { objectMode: false, highWaterMark: 2 }
+        ),
+      }),
+      expectedResult: {
+        aFibonacciStream: '1123581321345589144233377610987159725844181',
+      },
+    }
+  ),
+  scenario('a legal json with fibonacci as string stream', {
     input: () => ({
-      aFibonacciStream: toStream(fibonacci(1, 9), JsonStream.jsonTypes.string),
+      aFibonacciStream: toStream(fibonacci(1, 9), JsonStreamType.STRING),
     }),
     expectedResult: {
       aFibonacciStream: '1123581321',
     },
   }),
-  senario('a legal json with fibonacci as string stream', {
+  scenario('a legal json with fibonacci as array string stream', {
     input: () => ({
-      aFibonacciStream: toStream(
-        fibonacci(1, 9, true),
-        JsonStream.jsonTypes.array,
-        {
-          objectMode: false,
-        },
-      ),
+      aFibonacciStream: toStream(fibonacci(1, 9, true), JsonStreamType.ARRAY, {
+        objectMode: true,
+      }),
     }),
     expectedResult: {
       aFibonacciStream: ['1', '1', '2', '3', '5', '8', '13', '21'],
     },
   }),
-  senario('a legal json with fibonacci as array stream', {
+  scenario('a legal json with fibonacci as array int stream', {
     input: () => ({
-      aFibonacciStream: toStream(fibonacci(1, 9), JsonStream.jsonTypes.array),
+      aFibonacciStream: toStream(fibonacci(1, 9), JsonStreamType.ARRAY, {
+        objectMode: true,
+      }),
     }),
     expectedResult: {
       aFibonacciStream: [1, 1, 2, 3, 5, 8, 13, 21],
     },
   }),
-  senario('a legal json with object array stream', {
+  scenario(
+    'a legal json with fibonacci as array string stream with objectMode=false',
+    {
+      input: () => ({
+        aFibonacciStream: toStream(
+          fibonacci(1, 9, true),
+          JsonStreamType.ARRAY,
+          {
+            objectMode: false,
+          }
+        ),
+      }),
+      expectedResult: {
+        aFibonacciStream: ['1123581321'],
+      },
+    }
+  ),
+  scenario('a legal json with object array stream', {
     input: () => ({
       aArrayStream: toStream(
-        [
-          1,
-          { key: 'string' },
-          [1, 2, 3],
-          false,
-          Symbol(43),
-          undefined,
-          () => {},
-        ],
-        JsonStream.jsonTypes.array,
+        [1, { key: 'string' }, [1, 2, 3], false, Symbol(43), undefined, noop],
+        JsonStreamType.ARRAY
       ),
     }),
     expectedResult: {
       aArrayStream: [1, { key: 'string' }, [1, 2, 3], false, null, null, null],
     },
   }),
-  senario('a legal json with fibonacci as raw stream', {
+  scenario('a legal json with fibonacci as raw stream', {
     input: () => ({
-      aFibonacciStream: toStream(
-        fibonacci(1, 9, true),
-        JsonStream.jsonTypes.raw,
-      ),
+      aFibonacciStream: toStream(fibonacci(1, 9, true), JsonStreamType.RAW),
     }),
     expectedResult: {
       aFibonacciStream: 1123581321,
     },
   }),
-  senario('a legal json with three fibonacci streams', {
+  scenario('a legal json with three fibonacci streams', {
     input: () => ({
-      aFibonacciRawStream: toStream(
-        fibonacci(1, 9, true),
-        JsonStream.jsonTypes.raw,
-      ),
-      aFibonacciArrayStream: toStream(
-        fibonacci(1, 9),
-        JsonStream.jsonTypes.array,
-      ),
-      aFibonacciStringStream: toStream(
-        fibonacci(1, 9),
-        JsonStream.jsonTypes.string,
-      ),
+      aFibonacciRawStream: toStream(fibonacci(1, 9, true), JsonStreamType.RAW),
+      aFibonacciArrayStream: toStream(fibonacci(1, 9), JsonStreamType.ARRAY),
+      aFibonacciStringStream: toStream(fibonacci(1, 9), JsonStreamType.STRING),
     }),
     expectedResult: {
       aFibonacciRawStream: 1123581321,
@@ -263,7 +289,7 @@ const legalSenarios = [
       aFibonacciStringStream: '1123581321',
     },
   }),
-  senario('a legal json with promise', {
+  scenario('a legal json with promise', {
     input: () => ({
       aKeyWithPromise: Promise.resolve('aValue'),
     }),
@@ -271,13 +297,13 @@ const legalSenarios = [
       aKeyWithPromise: 'aValue',
     },
   }),
-  senario('a legal json with undefined', {
+  scenario('a legal json with undefined', {
     input: () => ({
       aUndefinedKey: undefined,
     }),
     expectedResult: {},
   }),
-  senario('a legal json with Date', {
+  scenario('a legal json with Date', {
     input: () => ({
       nodejsCreated: new Date('2009, 5, 27'),
     }),
@@ -285,7 +311,7 @@ const legalSenarios = [
       nodejsCreated: new Date('2009, 5, 27').toISOString(),
     },
   }),
-  senario('a json with key replacer function', {
+  scenario('a json with key replacer function', {
     input: () => ({
       aKeyToNotBeReplaced: 'Original Value',
       aKeyToBeReplaced: 'Original Value',
@@ -301,9 +327,9 @@ const legalSenarios = [
       aKeyToBeReplaced: 'A Replaced Value',
     },
   }),
-  senario('a json with key replacer function', {
+  scenario('a json with key replacer function', {
     input: () => ({
-      aKeyToNotBeStringified: 'Value we dont wnat to see',
+      aKeyToNotBeStringified: 'Value we dont want to see',
       aKeyToBeStringified: 'Value we want to see',
     }),
     replacer: ['aKeyToBeStringified'],
@@ -311,7 +337,7 @@ const legalSenarios = [
       aKeyToBeStringified: 'Value we want to see',
     },
   }),
-  senario('a json with json replacer function', {
+  scenario('a json with json replacer function', {
     input: () => ({
       toBeReplaced: 'Original Value',
     }),
@@ -323,7 +349,7 @@ const legalSenarios = [
     },
     expectedResult: { replacedKey: 123 },
   }),
-  senario('a json with string replacer function', {
+  scenario('a json with string replacer function', {
     input: () => ({
       toBeReplaced: 'Original Value',
     }),
@@ -337,14 +363,10 @@ const legalSenarios = [
   }),
 ];
 
-const getTestSenarios = (senarioNum = -1) => {
-  if (senarioNum < 0) {
-    return legalSenarios;
+export const getTestScenarios = (scenarioNum = -1) => {
+  if (scenarioNum < 0) {
+    return legalScenarios;
   } else {
-    return legalSenarios.slice(senarioNum, senarioNum + 1);
+    return legalScenarios.slice(scenarioNum, scenarioNum + 1);
   }
-};
-
-module.exports = {
-  legalSenarios: getTestSenarios(),
 };
