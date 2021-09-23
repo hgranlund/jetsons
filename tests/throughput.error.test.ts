@@ -123,7 +123,7 @@ describe('Jetsons is loaded', () => {
           }, 500);
         }),
       ).on('close', () => {}) as ClientRequest;
-      requestStreamToBeEnded.setHeader = () => {};
+      (requestStreamToBeEnded as any).setHeader = () => {};
       requestStreamToBeEnded.abort = () => {
         expect(output).not.toContain('Returned after 500ms');
         requestStreamToBeEnded.destroy();

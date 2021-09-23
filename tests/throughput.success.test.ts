@@ -31,11 +31,10 @@ describe('Jetsons is loaded', () => {
     (_, scenario) => {
       let object;
 
-      beforeAll(async (done) => {
+      beforeAll(async () => {
         const { input, replacer, space } = scenario;
         const collector = new Collector(input(), replacer, space);
         object = await collector.toObject();
-        done();
       });
 
       it('should return a expected output', () => {
@@ -48,7 +47,7 @@ describe('Jetsons is loaded', () => {
     let value;
     let jsonString;
 
-    beforeEach(async (done) => {
+    beforeEach(async () => {
       value = { aKeyWithArray: [1, true, 'aSting'] };
       const collector = new Collector(value, null, '');
       try {
@@ -56,7 +55,6 @@ describe('Jetsons is loaded', () => {
       } catch (error) {
         console.error(`${error.message} \n ${error.jsonString}`);
       }
-      done();
     });
 
     it('should return a expected json string', () => {

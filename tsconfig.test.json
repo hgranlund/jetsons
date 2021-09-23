@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "distTest",
     "rootDir": ".",
+    "types": ["node", "jest"]
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"],
   "exclude": [
